@@ -27,6 +27,7 @@ derivative_simplified = sp.simplify(derivative)
 derivative_limit = sp.limit(derivative_simplified, dx, 0)
 
 # Imprima o cálculo passo a passo
+print("_" *100)
 print("Função original: f(x) =", f_x)
 
 print("\nPasso 1: Calculando f(x+dx)")
