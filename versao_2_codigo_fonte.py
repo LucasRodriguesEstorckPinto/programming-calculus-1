@@ -2,8 +2,8 @@ import sympy
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
-matplotlib.use('TkAgg')
 import tkinter as tk
+matplotlib.use('TkAgg')
 
 
 def calcular_tangente():
