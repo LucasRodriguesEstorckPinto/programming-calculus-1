@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 import tkinter as tk
 from tkinter import ttk
+import math
 matplotlib.use('TkAgg')
 
 #FUNÇÕES
@@ -24,8 +25,20 @@ def calculo_derivada():
 def calculo_limite():
     return 0
 
-def calculo_raizes():
-    return 0
+def calculo_raizes(numero):
+    m = 0
+    n = 0
+    if math.sqrt(numero).is_integer():
+        m = m + n + (n+1)
+        n+=1
+        if m==numero:
+            return n
+    else: 
+        n = math.sqrt(numero)
+        return n
+    resultado_text.delete(1.0, tk.END)
+    resultado_text.insert(tk.END, f"A raiz de {numero} é : {n}\n")
+
     
 def textresult(pai):
     return tk.Label(pai , text="Resultado:" ,pady=3)
@@ -80,11 +93,13 @@ resultado_text.pack()
 
 lb5 = tk.Label(aba_raizes , text='insira o número: ')
 lb5.pack()
-entradaraiz = inputstr(aba_raizes)
-botaoraiz = botao(aba_raizes , calculo_raizes)
+entradaraiz = tk.Entry(aba_raizes)
+botaoraiz = botao(aba_raizes , calculo_raizes(float(entradaraiz.get())))
 textresult(aba_raizes).pack()
 resultado_text = tk.Text(aba_raizes, height=10, width=40)
 resultado_text.pack()
+
+
 
 
 
