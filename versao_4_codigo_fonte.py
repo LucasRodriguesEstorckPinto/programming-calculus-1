@@ -1,4 +1,4 @@
-import sympy
+import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib
@@ -7,103 +7,169 @@ from tkinter import ttk
 import math
 matplotlib.use('TkAgg')
 
-#FUNÇÕES
+# FUNÇÕES
 
 def inputstr(pai):
-    entry = tk.Entry(pai , width=40)
+    entry = tk.Entry(pai, width=40 , bd=1 , relief=tk.SOLID)
     entry.pack(pady=10)
     return entry
 
-def botao(pai , func):
-    button = tk.Button(pai, text="Calcular", command=func, pady=2 , padx=2)
-    button.pack()
+def botao(pai, func):
+    tk.Button(pai, text="Calcular", command=func, pady=2, padx=2 ,  bd=1 , relief=tk.SOLID).pack()
 
 def calculo_derivada():
-    return 0
-
+    try: 
+        x = sp.Symbol('x')
+        func_str = entradaderiv.get()
+        func = sp.sympify(func_str)  # Converte a string da função em uma expressão simbólica
+        derivada = sp.diff(func, x)
+        
+        point = float(entradaponto.get())
+        coef_angular = derivada.subs(x , point)
+        reta = (func.subs(x , point) + coef_angular * (x - point))
+        
+        resultado_text_deriv.delete(1.0, tk.END)
+        resultado_text_deriv.insert(tk.END, f"A derivada da função é: {derivada}\nA equação da reta tangente é: {reta}\n\n")
+    except:
+        resultado_text_deriv.delete(1.0, tk.END)
+        resultado_text_deriv.insert(tk.END, f"OCORREU ALGO ERRADO, TENTE NOVAMENTE!OU CONTATE lucas.pinto@grad.iprj.uerj.br")
 
 def calculo_limite():
-    return 0
+    try: 
+        func_str = entradalimit.get()
+        func = sp.sympify(func_str)  # Converte a string da função em uma expressão simbólica
+        variavel = sp.symbols(entradavar.get())
+        valor_tendencia = float(entradatend.get())
+        limite = sp.limit(func, variavel, valor_tendencia)
+        resultado_text_limite.delete(1.0, tk.END)
+        resultado_text_limite.insert(tk.END, f"O limite da função é: {limite}")
+    except:
+        resultado_text_limite.delete(1.0, tk.END)
+        resultado_text_limite.insert(tk.END, f"OCORREU ALGO ERRADO, TENTE NOVAMENTE!OU CONTATE lucas.pinto@grad.iprj.uerj.br")
 
-def calculo_raizes(numero):
-    numero = float(numero)
-    m = 0
-    n = 0
-    if math.sqrt(numero).is_integer():
-        m = m + n + (n+1)
-        n+=1
-        if m==numero:
-            return n
-    else: 
-        n = math.sqrt(numero)
-        return n
-    resultado_text.delete(1.0, tk.END)
-    resultado_text.insert(tk.END, f"A raiz de {numero} é : {n}\n")
+def raiz():
+    try:
+        numero = float(entradaraiz.get())
+        m = 0
+        n = 0
+        if math.sqrt(numero).is_integer():
+            while True:
+                m = m + n + (n+1)
+                n+=1
+                if m==numero:
+                    return n, numero
+        else: 
+            n = math.sqrt(numero)
+            return n, numero
+    except: 
+        resultado_text_raiz.delete(1.0, tk.END)
+        resultado_text_raiz.insert(tk.END, f"OCORREU ALGO ERRADO, TENTE NOVAMENTE!OU CONTATE lucas.pinto@grad.iprj.uerj.br")
 
-    
+def calculo_raizes():
+    try:
+        result, numero = raiz()
+        resultado_text_raiz.delete(1.0, tk.END)
+        resultado_text_raiz.insert(tk.END, f"A raiz de {numero} é: {result}")
+    except:
+        resultado_text_raiz.delete(1.0, tk.END)
+        resultado_text_raiz.insert(tk.END, f"OCORREU ALGO ERRADO, TENTE NOVAMENTE!OU CONTATE lucas.pinto@grad.iprj.uerj.br")
+
 def textresult(pai):
-    return tk.Label(pai , text="Resultado:" ,pady=3)
+    return tk.Label(pai, text="Resultado:", pady=3)
+
 # criando janela principal
 
 app = tk.Tk()
-app.title('SympleCalc')
+app.title('DDX')
 app.geometry("800x800")
 
-
 notebook = ttk.Notebook(app)
-notebook.place(x=0,y=0,width=800 , height=800)
+notebook.place(x=0, y=0, width=800, height=800)
 
 aba_derivada = ttk.Frame(notebook)
 notebook.add(aba_derivada, text='Derivadas')
 
 aba_limite = ttk.Frame(notebook)
-notebook.add(aba_limite , text='Limites')
+notebook.add(aba_limite, text='Limites')
 
 aba_raizes = ttk.Frame(notebook)
-notebook.add(aba_raizes , text= "Raízes quadradas")
+notebook.add(aba_raizes, text="Raízes quadradas")
 
-#ITENS ABA DERIVADA
+aba_graficos = ttk.Frame(notebook)
+notebook.add(aba_graficos , text='Gráficos de funções')
 
-lb1 = tk.Label(aba_derivada , text='Insira abaixo a função:')
+# ITENS ABA DERIVADA
+
+lb1 = tk.Label(aba_derivada, text='Insira abaixo a função:')
 lb1.pack()
 entradaderiv = inputstr(aba_derivada)
-lb6 = tk.Label(aba_derivada , text='Insira o ponto:')
+lb6 = tk.Label(aba_derivada, text='Insira o ponto:')
+lb6.pack()
 entradaponto = inputstr(aba_derivada)
-botaoderiv = botao(aba_derivada , calculo_derivada)
+botao(aba_derivada, calculo_derivada)
 textresult(aba_derivada).pack()
-resultado_text = tk.Text(aba_derivada, height=10, width=40)
-resultado_text.pack()
+resultado_text_deriv = tk.Text(aba_derivada, height=14, width=50 , padx=10 , pady=10 ,  bd=1 , relief=tk.SOLID)
+resultado_text_deriv.pack()
+resultado_text_deriv.insert(tk.END, f"\n\n A derivada, em termos simples , descreve a taxa de variação instantânea da função em relação à sua variável independente. Se você tem uma função f(x), a derivada f'(x) representa a taxa na qual f(x) está mudando em relação a x\n\n fonte:  Munem, M.A..; Foulis, D.J. Cálculo - Rio de Janeiro - Guanabara Dois , 1982. v1.")
 
-#ITENS ABA LIMITES
+# adicionando imagem
+caminho = 'deriva.png'
+imagem = tk.PhotoImage(file=caminho)
+lb_i = tk.Label(aba_derivada)
+lb_i.pack(padx=10)
+lb_i.config(image=imagem, width=445 , height=101)
+lb_i.image = imagem
 
-lb2 = tk.Label(aba_limite , text='Insira abaixo o limite:')
+
+# ITENS ABA LIMITES
+
+lb2 = tk.Label(aba_limite, text='Insira abaixo o limite:')
 lb2.pack()
 entradalimit = inputstr(aba_limite)
-lb3 = tk.Label(aba_limite , text='Insira a variável:')
+lb3 = tk.Label(aba_limite, text='Insira a variável:')
 lb3.pack()
 entradavar = inputstr(aba_limite)
-lb4 = tk.Label(aba_limite , text='variavel tende para que numero?')
+lb4 = tk.Label(aba_limite, text='variavel tende para que numero?')
 lb4.pack()
 entradatend = inputstr(aba_limite)
-botaolimit = botao(aba_limite , calculo_limite)
+botao(aba_limite, calculo_limite)
 textresult(aba_limite).pack()
-resultado_text = tk.Text(aba_limite, height=10, width=40)
-resultado_text.pack()
+resultado_text_limite = tk.Text(aba_limite, height=14, width=50 , padx=10 , pady=10 , bd=1 , relief=tk.SOLID)
+resultado_text_limite.pack()
+resultado_text_limite.insert(tk.END, f"\n\n O limite de uma função descreve o comportamento da função à medida que a variável independente se aproxima de um determinado valor. Em termos simples, estamos interessados em saber para qual valor a função se aproxima à medida que a variável de entrada se aproxima de um ponto específico.\n\n fonte:  Munem, M.A..; Foulis, D.J. Cálculo - Rio de Janeiro - Guanabara Dois , 1982. v1.")
 
-#ITENS ABA RAIZ
+#adicionando imagem
+caminho_lim = 'limit.png'
+imagem_lim = tk.PhotoImage(file=caminho_lim)
+imagem_lim = imagem_lim.subsample(2,2)
+lb_ii = tk.Label(aba_limite)
+lb_ii.pack(padx=10)
+lb_ii.config(image=imagem_lim, width=461 , height=113)
+lb_ii.image = imagem_lim
 
-lb5 = tk.Label(aba_raizes , text='insira o número: ')
+
+# ITENS ABA RAIZ
+
+lb5 = tk.Label(aba_raizes, text='insira o número: ')
 lb5.pack()
-entradaraiz = tk.Entry(aba_raizes)
+entradaraiz = inputstr(aba_raizes)
 entradaraiz.pack()
-botaoraiz = botao(aba_raizes , calculo_raizes(entradaraiz.get()))
+botao(aba_raizes, calculo_raizes)
 textresult(aba_raizes).pack()
-resultado_text = tk.Text(aba_raizes, height=10, width=40)
-resultado_text.pack()
+resultado_text_raiz = tk.Text(aba_raizes, height=14, width=50 , padx=10 , pady=10 , bd=1 , relief=tk.SOLID)
+resultado_text_raiz.pack()
+resultado_text_raiz.insert(tk.END, f"\n\n A raiz n-ésima de um número é definida como um número que, quando elevado a n, é igual a esse número. A radiciação é a operação inversa da potenciação, e todas as propriedades da radiciação são derivadas da potenciação. Aqui, usamos o método (Regrassão de Júlia) da aluna brasileira Júlia Pimenta Ferreira de 11 anos para resolver raízes exatas\n\nfonte:  https://mathworld.wolfram.com/ e http://www.sbem.com.br/revista/index.php/emr/index.")
 
+#adicionando imagem
+caminho_raiz = 'raiz.png'
+imagem_raiz = tk.PhotoImage(file=caminho_raiz)
+imagem_raiz = imagem_raiz.subsample(2,2)
+lb_iii = tk.Label(aba_raizes)
+lb_iii.pack(padx=10)
+lb_iii.config(image=imagem_raiz, width=461 , height=113)
+lb_iii.image = imagem_raiz
 
-
-
+# SEÇÃO PARA PLOT DE GRÁFICO
 
 
 
