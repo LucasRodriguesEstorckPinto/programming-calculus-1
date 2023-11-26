@@ -77,6 +77,37 @@ def calculo_raizes():
 def textresult(pai):
     return tk.Label(pai, text="Resultado:", pady=3)
 
+def plot_grafico():
+    try:
+        x = sp.Symbol('x')
+        func_str = entrada_grafico.get()
+        func_list = [sp.sympify(func.strip()) for func in func_str.split(',')]
+
+        # Convertendo as expressões simbólicas para funções numéricas
+        func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_list]
+
+        # Gerando valores para x
+        x_vals = np.linspace(-10, 10, 100)
+
+        # Plotando o gráfico
+        plt.figure()
+        for i, func_numeric in enumerate(func_numeric_list):
+            y_vals = func_numeric(x_vals)
+            plt.plot(x_vals, y_vals, label=f'Função {i + 1}')
+
+        plt.title('Gráfico das Funções')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
+        resultado_text_grafico.delete(1.0, tk.END)
+        resultado_text_grafico.insert(tk.END, "Gráfico plotado com sucesso!")
+    except Exception as e:
+        resultado_text_grafico.delete(1.0, tk.END)
+        resultado_text_grafico.insert(tk.END, f"OCORREU ALGO ERRADO, TENTE NOVAMENTE!OU CONTATE lucas.pinto@grad.iprj.uerj.br")
+
 # criando janela principal
 
 app = tk.Tk()
@@ -158,7 +189,7 @@ botao(aba_raizes, calculo_raizes)
 textresult(aba_raizes).pack()
 resultado_text_raiz = tk.Text(aba_raizes, height=14, width=50 , padx=10 , pady=10 , bd=1 , relief=tk.SOLID)
 resultado_text_raiz.pack()
-resultado_text_raiz.insert(tk.END, f"\n\n A raiz n-ésima de um número é definida como um número que, quando elevado a n, é igual a esse número. A radiciação é a operação inversa da potenciação, e todas as propriedades da radiciação são derivadas da potenciação. Aqui, usamos o método (Regrassão de Júlia) da aluna brasileira Júlia Pimenta Ferreira de 11 anos para resolver raízes exatas\n\nfonte:  https://mathworld.wolfram.com/ e http://www.sbem.com.br/revista/index.php/emr/index.")
+resultado_text_raiz.insert(tk.END, f"\n\n A raiz n-ésima de um número é definida como um número que, quando elevado a n, é igual a esse número. A radiciação é a operação inversa da potenciação, e todas as propriedades da radiciação são derivadas da potenciação. Aqui, usamos o método (Regressão de Júlia) da aluna brasileira Júlia Pimenta Ferreira de 11 anos para resolver raízes exatas\n\nfonte:  https://mathworld.wolfram.com/ e http://www.sbem.com.br/revista/index.php/emr/index.")
 
 #adicionando imagem
 caminho_raiz = 'raiz.png'
@@ -171,8 +202,13 @@ lb_iii.image = imagem_raiz
 
 # SEÇÃO PARA PLOT DE GRÁFICO
 
-
-
+lb7 = tk.Label(aba_graficos, text='Insira a função (use "x" como variável):')
+lb7.pack()
+entrada_grafico = inputstr(aba_graficos)
+botao(aba_graficos, plot_grafico)
+textresult(aba_graficos).pack()
+resultado_text_grafico = tk.Text(aba_graficos, height=14, width=50, padx=10, pady=10, bd=1, relief=tk.SOLID)
+resultado_text_grafico.pack()
 
 
 app.mainloop()
