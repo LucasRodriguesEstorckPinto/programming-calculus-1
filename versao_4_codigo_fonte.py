@@ -82,7 +82,7 @@ def plot_grafico():
         x = sp.Symbol('x')
         func_str = entrada_grafico.get()
         func_list = [sp.sympify(func.strip()) for func in func_str.split(',')]
-
+        
         # Convertendo as expressões simbólicas para funções numéricas
         func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_list]
 
@@ -94,7 +94,8 @@ def plot_grafico():
         for i, func_numeric in enumerate(func_numeric_list):
             y_vals = func_numeric(x_vals)
             plt.plot(x_vals, y_vals, label=f'Função {i + 1}')
-
+        
+        
         plt.title('Gráfico das Funções')
         plt.xlabel('x')
         plt.ylabel('y')
@@ -116,6 +117,9 @@ app.geometry("800x800")
 
 notebook = ttk.Notebook(app)
 notebook.place(x=0, y=0, width=800, height=800)
+
+aba_dominio = ttk.Frame(notebook)
+notebook.add(aba_dominio , text='Dominio de funções')
 
 aba_derivada = ttk.Frame(notebook)
 notebook.add(aba_derivada, text='Derivadas')
