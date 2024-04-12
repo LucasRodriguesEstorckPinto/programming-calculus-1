@@ -77,28 +77,16 @@ def calculo_limite():
 def raiz():
     try:
         numero = float(entradaraiz.get())
-        m = 0
-        n = 0
-        if math.sqrt(numero).is_integer():
-            while True:
-                m = m + n + (n + 1)
-                n += 1
-                if m == numero:
-                    return n, numero
-        else:
-            n = math.sqrt(numero)
-            return n, numero
-    except Exception as e:
-        messagebox.showerror("Erro", "Ocorreu um erro ao calcular a raiz. Verifique sua entrada.")
+        indice_input = entradaindice.get()  # Capturando a entrada do índice
+        if not indice_input:  # Verificando se o campo de entrada está vazio
+            raise ValueError("Índice não fornecido")
+        indice = int(indice_input)
+        raiz_value = math.pow(numero, 1/indice)
+        resultado_text_raiz.delete(1.0,tk.END)
+        resultado_text_raiz.insert(tk.END, f"A raíz {indice}-ésima de {numero} é: {raiz_value:.4}")
+    except ValueError:
+        messagebox.showerror("Erro", "Por favor, forneça um índice e/ou numero válido para calcular a raiz.")
 
-def calculo_raizes():
-    global resultado_text_raiz
-    try:
-        result, numero = raiz()
-        resultado_text_raiz.delete(1.0, tk.END)
-        resultado_text_raiz.insert(tk.END, f"A raiz de {numero} é: {result}")
-    except Exception as e:
-        messagebox.showerror("Erro", "Ocorreu um erro ao calcular a raiz. Verifique sua entrada.")
 
 def plot_grafico():
     global resultado_text_grafico
@@ -112,6 +100,8 @@ def plot_grafico():
         for i, func_numeric in enumerate(func_numeric_list):
             y_vals = func_numeric(x_vals)
             plt.plot(x_vals, y_vals, label=f'Função {i + 1}')
+        plt.axhline(0, color='black', lw=0.6)  # Linha no eixo x
+        plt.axvline(0, color='black', lw=0.6)  # Linha no eixo y
         plt.title('Gráfico das Funções')
         plt.xlabel('x')
         plt.ylabel('y')
@@ -188,7 +178,7 @@ aba_integrais = tk.Frame(app)
 lb1 = tk.Label(aba_dominio, text='Insira abaixo a função:', font=("Helvetica", 12))
 lb1.pack()
 entradadom = inputstr(aba_dominio)
-botao(aba_dominio, calculo_dominio_imagem, 'Calcular')  # Mudança aqui
+botao(aba_dominio, calculo_dominio_imagem, 'Calcular')
 botao(aba_dominio, return_to_menu,'Voltar para o menu')
 resultado_text_dom = tk.Text(aba_dominio, height=10, width=50)
 resultado_text_dom.pack()
@@ -197,20 +187,23 @@ resultado_text_dom.pack()
 lb2 = tk.Label(aba_raizes, text='insira o número:', font=("Helvetica", 12))
 lb2.pack()
 entradaraiz = inputstr(aba_raizes)
-botao(aba_raizes, calculo_raizes , 'Calcular')
+lb3 = tk.Label(aba_raizes, text='insira o índice:', font=("Helvetica", 12))  # Novo label para o índice
+lb3.pack()
+entradaindice = inputstr(aba_raizes)  # Novo campo para o índice
+botao(aba_raizes, raiz , 'Calcular')
 botao(aba_raizes, return_to_menu , 'Voltar para o menu')
 resultado_text_raiz = tk.Text(aba_raizes, height=10, width=50)
 resultado_text_raiz.pack()
 
 # Aba Limites
-lb3 = tk.Label(aba_limite, text='Insira abaixo o limite:', font=("Helvetica", 12))
-lb3.pack()
-entradalimit = inputstr(aba_limite)
-lb4 = tk.Label(aba_limite, text='Insira a variável:', font=("Helvetica", 12))
+lb4 = tk.Label(aba_limite, text='Insira abaixo o limite:', font=("Helvetica", 12))
 lb4.pack()
-entradavar = inputstr(aba_limite)
-lb5 = tk.Label(aba_limite, text='variável tende para que número?', font=("Helvetica", 12))
+entradalimit = inputstr(aba_limite)
+lb5 = tk.Label(aba_limite, text='Insira a variável:', font=("Helvetica", 12))
 lb5.pack()
+entradavar = inputstr(aba_limite)
+lb6 = tk.Label(aba_limite, text='variável tende para que número?', font=("Helvetica", 12))
+lb6.pack()
 entradatend = inputstr(aba_limite)
 botao(aba_limite, calculo_limite , 'Calcular')
 botao(aba_limite, return_to_menu, 'Voltar para o menu')
@@ -218,11 +211,11 @@ resultado_text_limite = tk.Text(aba_limite, height=10, width=50)
 resultado_text_limite.pack()
 
 # Aba Derivadas
-lb6 = tk.Label(aba_derivada, text='Insira abaixo a função:', font=("Helvetica", 12))
-lb6.pack()
-entradaderiv = inputstr(aba_derivada)
-lb7 = tk.Label(aba_derivada, text='Insira o ponto:', font=("Helvetica", 12))
+lb7 = tk.Label(aba_derivada, text='Insira abaixo a função:', font=("Helvetica", 12))
 lb7.pack()
+entradaderiv = inputstr(aba_derivada)
+lb8 = tk.Label(aba_derivada, text='Insira o ponto:', font=("Helvetica", 12))
+lb8.pack()
 entradaponto = inputstr(aba_derivada)
 botao(aba_derivada, calculo_derivada , 'Calcular')
 botao(aba_derivada, return_to_menu , 'Voltar para o menu')
@@ -230,8 +223,8 @@ resultado_text_deriv = tk.Text(aba_derivada, height=10, width=50)
 resultado_text_deriv.pack()
 
 # Aba Gráficos
-lb8 = tk.Label(aba_graficos, text='Insira a função (use "x" como variável):', font=("Helvetica", 12))
-lb8.pack()
+lb9 = tk.Label(aba_graficos, text='Insira a função (use "x" como variável):', font=("Helvetica", 12))
+lb9.pack()
 entrada_grafico = inputstr(aba_graficos)
 botao(aba_graficos, plot_grafico , 'Calcular')
 botao(aba_graficos, return_to_menu, 'Voltar para o menu')
