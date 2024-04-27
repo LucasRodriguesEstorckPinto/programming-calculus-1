@@ -78,7 +78,7 @@ def raiz():
     try:
         numero = float(entradaraiz.get())
         indice_input = entradaindice.get()  # Capturando a entrada do índice
-        if not indice_input:  # Verificando se o campo de entrada está vazio
+        if not indice_input:                # Verificando se o campo de entrada está vazio
             raise ValueError("Índice não fornecido")
         indice = int(indice_input)
         raiz_value = math.pow(numero, 1/indice)
