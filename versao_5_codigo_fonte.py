@@ -68,11 +68,20 @@ def calculo_limite():
         func = sp.sympify(func_str)
         variavel = sp.symbols(entradavar.get())
         valor_tendencia = float(entradatend.get())
-        limite = sp.limit(func, variavel, valor_tendencia)
+        
+        limite_esquerda = sp.limit(func, variavel, valor_tendencia, dir='-')
+        limite_direita = sp.limit(func, variavel, valor_tendencia, dir='+')
+        
         resultado_text_limite.delete(1.0, tk.END)
-        resultado_text_limite.insert(tk.END, f"O limite da função é: {limite}")
+        
+        if limite_esquerda == limite_direita:
+            resultado_text_limite.insert(tk.END, f"O limite da função é: {limite_esquerda}")
+        else:
+            resultado_text_limite.insert(tk.END, f"O limite da função não existe.")
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao calcular o limite. Verifique sua entrada.")
+
+
 
 def raiz():
     try:
