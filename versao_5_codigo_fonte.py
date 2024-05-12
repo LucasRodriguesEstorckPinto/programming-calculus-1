@@ -158,6 +158,11 @@ def calculo_dominio_imagem():
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao calcular o domínio e a imagem. Verifique sua entrada.")
 
+
+def calculo_integral():
+    pass
+
+
 app = tk.Tk()
 app.title('DDX')
 app.geometry("800x800")
@@ -241,6 +246,12 @@ resultado_text_grafico = tk.Text(aba_graficos, height=10, width=50)
 resultado_text_grafico.pack()
 
 # Aba Integrais (espaço reservado para implementação)
-botao(aba_integrais, return_to_menu , "Voltar para o menu")
+lb10 = tk.Label(aba_integrais , text="Insira a funçaõ:" , font=("Helvetiva" , 12))
+lb10.pack()
+entrada_integrais = inputstr(aba_integrais)
+botao(aba_integrais, calculo_integral , 'Calcular')
+botao(aba_integrais, return_to_menu, 'Voltar para o menu')
+resultado_text_integral = tk.Text(aba_integrais, height=10, width=50)
+resultado_text_integral.pack()
 
 app.mainloop()
