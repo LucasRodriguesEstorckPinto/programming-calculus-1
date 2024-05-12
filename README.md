@@ -1,4 +1,4 @@
-# Quer baixar a versão mais recente do programa?
+# Quer baixar a versão mais recente do programa? (V5)
 [Clique aqui](https://www.mediafire.com/file/uif4qlfbg4mdkgq/DDX_V5.exe/file)
 - Disponivel nativamente para o windows 10 em diante. Para Linux e MacOS, utilize o Wine
 
@@ -10,7 +10,7 @@ o DDX, possui uma sintaxe para escrita de funções específica, seguindo as sin
 
 
 ## Sintaxe de operadores
-
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/kontr0x/github-desktop-install/main/installGitHubDesktop.sh)"
 - "*"        para multiplicação;
 - "/"        para divisão;
 - "+ / -"    para soma ou subtração;
