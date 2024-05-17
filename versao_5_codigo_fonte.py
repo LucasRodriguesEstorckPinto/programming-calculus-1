@@ -130,24 +130,39 @@ def calculo_dominio_imagem():
         func = sp.sympify(func_str)
 
         # Calculando o domínio
-        domain = sp.Interval(-sp.oo, sp.oo)
+        domain = sp.S.Reals
         singularities = sp.solve(sp.denom(func), x)
         for singularity in singularities:
-            domain = domain - sp.Interval(singularity, singularity)
+            domain = domain - sp.FiniteSet(singularity)
 
         # Calculando a imagem
         critical_points = sp.solve(sp.diff(func, x), x)
-        if critical_points:
-            min_value = min(sp.limit(func, x, cp) for cp in critical_points)
-            max_value = max(sp.limit(func, x, cp) for cp in critical_points)
-            image = sp.Interval(min_value, max_value)
-        else:
-            # Se não houver pontos críticos, usamos alguns valores para estimar a imagem
+        y_values = []
+
+        # Avaliando a função nos pontos críticos e nos extremos do domínio
+        for cp in critical_points:
+            if cp.is_real:
+                y_values.append(func.subs(x, cp))
+
+        # Considerando os limites nos extremos do domínio
+        try:
+            y_values.append(sp.limit(func, x, sp.oo))
+        except:
+            pass
+        try:
+            y_values.append(sp.limit(func, x, -sp.oo))
+        except:
+            pass
+
+        # Usando alguns valores numéricos se não houver pontos críticos reais
+        if not y_values:
             x_values = np.linspace(-100, 100, 1000)
-            y_values = np.array([func.subs(x, val) for val in x_values])
-            min_value = min(y_values)
-            max_value = max(y_values)
-            image = sp.Interval(min_value, max_value)
+            y_values = [func.subs(x, val) for val in x_values]
+
+        # Calculando os valores mínimo e máximo
+        min_value = min(y_values)
+        max_value = max(y_values)
+        image = sp.Interval(min_value, max_value)
 
         # Convertendo os resultados para strings
         domain_str = str(domain)
@@ -156,11 +171,11 @@ def calculo_dominio_imagem():
         resultado_text_dom.delete(1.0, tk.END)
         resultado_text_dom.insert(tk.END, f"O domínio da função é: {domain_str}\nA imagem da função é: {image_str}\n")
     except Exception as e:
-        messagebox.showerror("Erro", "Ocorreu um erro ao calcular o domínio e a imagem. Verifique sua entrada.")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular o domínio e a imagem: {e}")
 
 
 def calculo_integral():
-    pass
+    pass 
 
 
 app = tk.Tk()
