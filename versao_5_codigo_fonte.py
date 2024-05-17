@@ -175,7 +175,20 @@ def calculo_dominio_imagem():
 
 
 def calculo_integral():
-    pass 
+    global resultado_text_int
+    try:
+        func_str = entrada_integrais.get()
+        x = sp.symbols('x')
+        func = sp.sympify(func_str)
+
+        # Calculando a integral indefinida
+        integral = sp.integrate(func, x)
+        integral_str = str(integral)
+
+        resultado_text_integral.delete(1.0, tk.END)
+        resultado_text_integral.insert(tk.END, f"A integral indefinida da função é: {integral_str} + C\n")
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral indefinida: {e}")
 
 
 app = tk.Tk()
