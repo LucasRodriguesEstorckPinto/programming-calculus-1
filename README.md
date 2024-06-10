@@ -10,7 +10,7 @@ o DDX, possui uma sintaxe para escrita de funções específica, seguindo as sin
 
 
 ## Sintaxe de operadores
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/kontr0x/github-desktop-install/main/installGitHubDesktop.sh)"
+
 - "*"        para multiplicação;
 - "/"        para divisão;
 - "+ / -"    para soma ou subtração;
