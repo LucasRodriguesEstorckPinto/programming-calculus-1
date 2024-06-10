@@ -340,4 +340,13 @@ botao(aba_integrais, return_to_menu, 'Voltar para o menu')
 resultado_text_integral = tk.Text(aba_integrais, height=10, width=50)
 resultado_text_integral.pack()
 
+# adicionando imagem
+caminho_integral = 'integral.png'
+imagem_integral = tk.PhotoImage(file=caminho_integral)
+imagem_integral = imagem_integral.subsample(2, 2)
+lb_iiii = tk.Label(aba_integrais)
+lb_iiii.pack(padx=10)
+lb_iiii.config(image=imagem_integral, width=461, height=213)
+lb_iiii.image = imagem_integral
+
 app.mainloop()
