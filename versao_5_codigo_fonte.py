@@ -3,7 +3,7 @@ from tkinter import messagebox
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-import math
+
 
 def show_menu():
     menu_frame.pack()
@@ -43,7 +43,7 @@ def inputstr(pai):
     entry.pack(pady=10)
     return entry
 
-def botao(pai, func , texto):
+def botao(pai, func, texto):
     tk.Button(pai, text=texto, command=func, pady=2, padx=2, bd=1, relief=tk.SOLID).pack()
 
 def calculo_derivada():
@@ -73,15 +73,13 @@ def calculo_limite():
         limite_direita = sp.limit(func, variavel, valor_tendencia, dir='+')
         
         resultado_text_limite.delete(1.0, tk.END)
-        
+
         if limite_esquerda == limite_direita:
             resultado_text_limite.insert(tk.END, f"O limite da função é: {limite_esquerda}")
         else:
             resultado_text_limite.insert(tk.END, f"O limite da função não existe.")
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao calcular o limite. Verifique sua entrada.")
-
-
 
 def raiz():
     try:
@@ -90,12 +88,11 @@ def raiz():
         if not indice_input:                # Verificando se o campo de entrada está vazio
             raise ValueError("Índice não fornecido")
         indice = int(indice_input)
-        raiz_value = math.pow(numero, 1/indice)
-        resultado_text_raiz.delete(1.0,tk.END)
+        raiz_value = pow(numero, 1/indice)
+        resultado_text_raiz.delete(1.0, tk.END)
         resultado_text_raiz.insert(tk.END, f"A raíz {indice}-ésima de {numero} é: {raiz_value:.4}")
     except ValueError:
-        messagebox.showerror("Erro", "Por favor, forneça um índice e/ou numero válido para calcular a raiz.")
-
+        messagebox.showerror("Erro", "Por favor, forneça um índice e/ou número válido para calcular a raiz.")
 
 def plot_grafico():
     global resultado_text_grafico
@@ -106,9 +103,23 @@ def plot_grafico():
         func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_list]
         x_vals = np.linspace(-10, 10, 100)
         plt.figure()
-        for i, func_numeric in enumerate(func_numeric_list):
+        for func, func_numeric in zip(func_list, func_numeric_list):
             y_vals = func_numeric(x_vals)
-            plt.plot(x_vals, y_vals, label=f'Função {i + 1}')
+            plt.plot(x_vals, y_vals, label=f'${sp.latex(func)}$')
+        
+        if show_points_var.get():
+            for func in func_list:
+                crit_points = sp.solve(sp.diff(func, x), x)
+                inflex_points = sp.solve(sp.diff(func, x, x), x)
+                
+                for cp in crit_points:
+                    if cp.is_real:
+                        plt.plot(cp, func.subs(x, cp), 'ro', label='Ponto Crítico')
+                
+                for ip in inflex_points:
+                    if ip.is_real:
+                        plt.plot(ip, func.subs(x, ip), 'go', label='Ponto de Inflexão')
+
         plt.axhline(0, color='black', lw=0.6)  # Linha no eixo x
         plt.axvline(0, color='black', lw=0.6)  # Linha no eixo y
         plt.title('Gráfico das Funções')
@@ -173,23 +184,30 @@ def calculo_dominio_imagem():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular o domínio e a imagem: {e}")
 
-
 def calculo_integral():
     global resultado_text_int
     try:
         func_str = entrada_integrais.get()
         x = sp.symbols('x')
         func = sp.sympify(func_str)
+        limite_inf = entrada_limite_inf.get().strip()
+        limite_sup = entrada_limite_sup.get().strip()
 
-        # Calculando a integral indefinida
-        integral = sp.integrate(func, x)
-        integral_str = str(integral)
-
-        resultado_text_integral.delete(1.0, tk.END)
-        resultado_text_integral.insert(tk.END, f"A integral indefinida da função é: {integral_str} + C\n")
+        if limite_inf and limite_sup:
+            limite_inf = float(limite_inf)
+            limite_sup = float(limite_sup)
+            integral_def = sp.integrate(func, (x, limite_inf, limite_sup))
+            integral_def_str = str(integral_def)
+            resultado_text_integral.delete(1.0, tk.END)
+            resultado_text_integral.insert(tk.END, f"A integral definida da função de {limite_inf} a {limite_sup} é: {integral_def_str:.3}\n")
+        else:
+            # Calculando a integral indefinida
+            integral = sp.integrate(func, x)
+            integral_str = str(integral)
+            resultado_text_integral.delete(1.0, tk.END)
+            resultado_text_integral.insert(tk.END, f"A integral indefinida da função é: {integral_str} + C\n")
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral indefinida: {e}")
-
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral: {e}")
 
 app = tk.Tk()
 app.title('DDX')
@@ -237,6 +255,16 @@ botao(aba_raizes, return_to_menu , 'Voltar para o menu')
 resultado_text_raiz = tk.Text(aba_raizes, height=10, width=50)
 resultado_text_raiz.pack()
 
+
+# adicionando imagem
+caminho_raiz = 'raiz.png'
+imagem_raiz = tk.PhotoImage(file=caminho_raiz)
+imagem_raiz = imagem_raiz.subsample(2, 2)
+lb_iii = tk.Label(aba_raizes)
+lb_iii.pack(padx=10)
+lb_iii.config(image=imagem_raiz, width=461, height=113)
+lb_iii.image = imagem_raiz
+
 # Aba Limites
 lb4 = tk.Label(aba_limite, text='Insira abaixo o limite:', font=("Helvetica", 12))
 lb4.pack()
@@ -252,6 +280,19 @@ botao(aba_limite, return_to_menu, 'Voltar para o menu')
 resultado_text_limite = tk.Text(aba_limite, height=10, width=50)
 resultado_text_limite.pack()
 
+#adicionando imagem
+caminho_lim = 'limit.png'
+imagem_lim = tk.PhotoImage(file=caminho_lim)
+imagem_lim = imagem_lim.subsample(2, 2)
+lb_ii = tk.Label(aba_limite)
+lb_ii.pack(padx=10)
+lb_ii.config(image=imagem_lim, width=461, height=113)
+lb_ii.image = imagem_lim
+
+#ADICIONAR AQUI EXEMPLO
+
+
+
 # Aba Derivadas
 lb7 = tk.Label(aba_derivada, text='Insira abaixo a função:', font=("Helvetica", 12))
 lb7.pack()
@@ -264,19 +305,36 @@ botao(aba_derivada, return_to_menu , 'Voltar para o menu')
 resultado_text_deriv = tk.Text(aba_derivada, height=10, width=50)
 resultado_text_deriv.pack()
 
+# adicionando imagem
+caminho = 'deriva.png'
+imagem = tk.PhotoImage(file=caminho)
+lb_i = tk.Label(aba_derivada)
+lb_i.pack(padx=10)
+lb_i.config(image=imagem, width=445, height=101)
+lb_i.image = imagem
+
 # Aba Gráficos
 lb9 = tk.Label(aba_graficos, text='Insira a função (use "x" como variável):', font=("Helvetica", 12))
 lb9.pack()
 entrada_grafico = inputstr(aba_graficos)
+show_points_var = tk.IntVar()
+show_points_checkbox = tk.Checkbutton(aba_graficos, text="Mostrar pontos de inflexão, mínimos e máximos", variable=show_points_var)
+show_points_checkbox.pack()
 botao(aba_graficos, plot_grafico , 'Calcular')
 botao(aba_graficos, return_to_menu, 'Voltar para o menu')
 resultado_text_grafico = tk.Text(aba_graficos, height=10, width=50)
 resultado_text_grafico.pack()
 
-# Aba Integrais (espaço reservado para implementação)
-lb10 = tk.Label(aba_integrais , text="Insira a funçaõ:" , font=("Helvetiva" , 12))
+# Aba Integrais 
+lb10 = tk.Label(aba_integrais , text="Insira a função:" , font=("Helvetica", 12))
 lb10.pack()
 entrada_integrais = inputstr(aba_integrais)
+lb11 = tk.Label(aba_integrais , text="Limite inferior (opcional):" , font=("Helvetica", 12))
+lb11.pack()
+entrada_limite_inf = inputstr(aba_integrais)
+lb12 = tk.Label(aba_integrais , text="Limite superior (opcional):" , font=("Helvetica", 12))
+lb12.pack()
+entrada_limite_sup = inputstr(aba_integrais)
 botao(aba_integrais, calculo_integral , 'Calcular')
 botao(aba_integrais, return_to_menu, 'Voltar para o menu')
 resultado_text_integral = tk.Text(aba_integrais, height=10, width=50)
