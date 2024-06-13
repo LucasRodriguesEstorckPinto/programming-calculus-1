@@ -240,8 +240,10 @@ lb1.pack()
 entradadom = inputstr(aba_dominio)
 botao(aba_dominio, calculo_dominio_imagem, 'Calcular')
 botao(aba_dominio, return_to_menu,'Voltar para o menu')
-resultado_text_dom = tk.Text(aba_dominio, height=10, width=50)
-resultado_text_dom.pack()
+resultado_text_dom = tk.Text(aba_dominio, height=12, width=52)
+resultado_text_dom.pack(padx=10 , pady=10)
+resultado_text_dom.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
+
 
 # Aba Raiz 
 lb2 = tk.Label(aba_raizes, text='insira o número:', font=("Helvetica", 12))
@@ -252,8 +254,14 @@ lb3.pack()
 entradaindice = inputstr(aba_raizes)  # Novo campo para o índice
 botao(aba_raizes, raiz , 'Calcular')
 botao(aba_raizes, return_to_menu , 'Voltar para o menu')
-resultado_text_raiz = tk.Text(aba_raizes, height=10, width=50)
-resultado_text_raiz.pack()
+resultado_text_raiz = tk.Text(aba_raizes, height=12, width=55)
+resultado_text_raiz.pack(padx=10 , pady=10)
+resultado_text_raiz.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
+
+
+resultado_text_raiz.insert(tk.END,
+                           f"\n\n A raiz n-ésima de um número é definida como um número que, quando elevado a n, é igual a esse número. A radiciação é a operação inversa da potenciação, e todas as propriedades da radiciação são derivadas da potenciação. Aqui, usamos o método (Regressão de Júlia) da aluna brasileira Júlia Pimenta Ferreira de 11 anos para resolver raízes exatas\n\nfonte:  https://mathworld.wolfram.com/ e http://www.sbem.com.br/revista/index.php/emr/index.")
+
 
 
 # adicionando imagem
@@ -277,8 +285,14 @@ lb6.pack()
 entradatend = inputstr(aba_limite)
 botao(aba_limite, calculo_limite , 'Calcular')
 botao(aba_limite, return_to_menu, 'Voltar para o menu')
-resultado_text_limite = tk.Text(aba_limite, height=10, width=50)
-resultado_text_limite.pack()
+resultado_text_limite = tk.Text(aba_limite, height=12, width=55)
+resultado_text_limite.pack(padx=10 , pady=10)
+resultado_text_limite.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
+
+
+resultado_text_limite.insert(tk.END,
+                             f"\n\n O limite de uma função descreve o comportamento da função à medida que a variável independente se aproxima de um determinado valor. Em termos simples, estamos interessados em saber para qual valor a função se aproxima à medida que a variável de entrada se aproxima de um ponto específico.\n\n fonte:  Munem, M.A..; Foulis, D.J. Cálculo - Rio de Janeiro - Guanabara Dois , 1982. v1.")
+
 
 #adicionando imagem
 caminho_lim = 'limit.png'
@@ -292,7 +306,6 @@ lb_ii.image = imagem_lim
 #ADICIONAR AQUI EXEMPLO
 
 
-
 # Aba Derivadas
 lb7 = tk.Label(aba_derivada, text='Insira abaixo a função:', font=("Helvetica", 12))
 lb7.pack()
@@ -302,8 +315,16 @@ lb8.pack()
 entradaponto = inputstr(aba_derivada)
 botao(aba_derivada, calculo_derivada , 'Calcular')
 botao(aba_derivada, return_to_menu , 'Voltar para o menu')
-resultado_text_deriv = tk.Text(aba_derivada, height=10, width=50)
-resultado_text_deriv.pack()
+resultado_text_deriv = tk.Text(aba_derivada, height=12, width=55)
+resultado_text_deriv.pack(padx=10 , pady=10)
+resultado_text_deriv.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
+
+
+
+resultado_text_deriv.insert(tk.END,
+                            f"\n\n A derivada, em termos simples , descreve a taxa de variação instantânea da função em relação à sua variável independente. Se você tem uma função f(x), a derivada f'(x) representa a taxa na qual f(x) está mudando em relação a x\n\n fonte:  Munem, M.A..; Foulis, D.J. Cálculo - Rio de Janeiro - Guanabara Dois , 1982. v1.")
+
+
 
 # adicionando imagem
 caminho = 'deriva.png'
@@ -322,8 +343,10 @@ show_points_checkbox = tk.Checkbutton(aba_graficos, text="Mostrar pontos de infl
 show_points_checkbox.pack()
 botao(aba_graficos, plot_grafico , 'Calcular')
 botao(aba_graficos, return_to_menu, 'Voltar para o menu')
-resultado_text_grafico = tk.Text(aba_graficos, height=10, width=50)
-resultado_text_grafico.pack()
+resultado_text_grafico = tk.Text(aba_graficos, height=12, width=55)
+resultado_text_grafico.pack(padx=10 , pady=10)
+resultado_text_grafico.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
+
 
 # Aba Integrais 
 lb10 = tk.Label(aba_integrais , text="Insira a função:" , font=("Helvetica", 12))
@@ -337,8 +360,10 @@ lb12.pack()
 entrada_limite_sup = inputstr(aba_integrais)
 botao(aba_integrais, calculo_integral , 'Calcular')
 botao(aba_integrais, return_to_menu, 'Voltar para o menu')
-resultado_text_integral = tk.Text(aba_integrais, height=10, width=50)
-resultado_text_integral.pack()
+resultado_text_integral = tk.Text(aba_integrais, height=12, width=55)
+resultado_text_integral.pack(padx=10 , pady=10)
+resultado_text_integral.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
+
 
 # adicionando imagem
 caminho_integral = 'integral.png'
