@@ -209,6 +209,24 @@ def calculo_integral():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral: {e}")
 
+def plot_func_tangente():
+    try:
+        x = sp.Symbol('x')
+        func_str = entradaderiv.get()
+        func = sp.sympify(func_str)
+        derivada = sp.diff(func, x)
+        point = float(entradaponto.get())
+        coef_angular = derivada.subs(x, point)
+        reta = func.subs(x, point) + coef_angular * (x - point)
+        
+        entrada_grafico.delete(0, tk.END)
+        entrada_grafico.insert(0, f"{func_str}, {reta}")
+        
+        plot_grafico()
+    except Exception as e:
+        messagebox.showerror("Erro", "Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.")
+
+
 app = tk.Tk()
 app.title('DDX')
 app.geometry("800x800")
@@ -319,11 +337,10 @@ resultado_text_deriv = tk.Text(aba_derivada, height=12, width=55)
 resultado_text_deriv.pack(padx=10 , pady=10)
 resultado_text_deriv.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
 
-
-
 resultado_text_deriv.insert(tk.END,
                             f"\n\n A derivada, em termos simples , descreve a taxa de variação instantânea da função em relação à sua variável independente. Se você tem uma função f(x), a derivada f'(x) representa a taxa na qual f(x) está mudando em relação a x\n\n fonte:  Munem, M.A..; Foulis, D.J. Cálculo - Rio de Janeiro - Guanabara Dois , 1982. v1.")
 
+botao(aba_derivada, plot_func_tangente, 'Plotar Função e Reta Tangente')
 
 
 # adicionando imagem
