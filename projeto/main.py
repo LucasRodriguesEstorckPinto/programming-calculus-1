@@ -44,7 +44,7 @@ def inputstr(pai):
     return entry
 
 def botao(pai, func, texto):
-    tk.Button(pai, text=texto, command=func, pady=2, padx=2, bd=1, relief=tk.SOLID).pack()
+    tk.Button(pai, text=texto, command=func, pady=3, padx=4, bd=1, relief=tk.SOLID, width=20).pack()
 
 def calculo_derivada():
     global resultado_text_deriv
@@ -226,6 +226,53 @@ def plot_func_tangente():
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.")
 
+def exemplo_dominio_imagem():
+    example_text = (
+        "Exemplo de Domínio e Imagem:\n"
+        "Função: f(x) = 1/(x-2)\n"
+        "Domínio: Todos os valores de x, exceto x=2. Isso porque a função se torna indefinida quando x=2, "
+        "pois resultaria em uma divisão por zero.\n"
+        "Imagem: Todos os valores reais, exceto f(x)=0. A função nunca toca o eixo x, "
+        "pois não há valor de x que faça a função igual a zero."
+    )
+    resultado_text_dom.delete(1.0, tk.END)
+    resultado_text_dom.insert(tk.END, example_text)
+
+def exemplo_limite():
+    example_text = (
+        "Exemplo de Limite:\n"
+        "Função: f(x) = (x^2 - 1)/(x - 1)\n"
+        "Para calcular o limite de f(x) quando x tende a 1, simplificamos a função:\n"
+        "f(x) = (x + 1) para x ≠ 1.\n"
+        "Então, o limite de f(x) quando x tende a 1 é 2.\n"
+        "Lembre-se de que o limite se refere ao valor que a função se aproxima à medida que x se aproxima de 1."
+    )
+    resultado_text_limite.delete(1.0, tk.END)
+    resultado_text_limite.insert(tk.END, example_text)
+
+def exemplo_derivada():
+    example_text = (
+        "Exemplo de Derivada e Tangente:\n"
+        "Função: f(x) = x^2\n"
+        "Derivada: f'(x) = 2x. Isso representa a inclinação da função em qualquer ponto x.\n"
+        "No ponto x=3, f'(3) = 6. Isso significa que a inclinação da tangente à curva no ponto (3, f(3)) é 6.\n"
+        "A equação da reta tangente é dada por: y = f(3) + f'(3)*(x - 3)\n"
+        "Neste caso, a reta tangente é y = 9 + 6(x - 3), simplificando: y = 6x - 9."
+    )
+    resultado_text_deriv.delete(1.0, tk.END)
+    resultado_text_deriv.insert(tk.END, example_text)
+
+def exemplo_integral():
+    example_text = (
+        "Exemplo de Integral:\n"
+        "Função: f(x) = x^2\n"
+        "Integral Indefinida: ∫x^2 dx = (1/3)x^3 + C, onde C é a constante de integração.\n"
+        "Integral Definida de 0 a 2: ∫(de 0 a 2) x^2 dx = [(1/3)x^3] de 0 a 2 = (8/3) - 0 = 8/3.\n"
+        "Isso representa a área sob a curva de f(x) entre x=0 e x=2."
+    )
+    resultado_text_integral.delete(1.0, tk.END)
+    resultado_text_integral.insert(tk.END, example_text)
+
 
 app = tk.Tk()
 app.title('DDX')
@@ -257,10 +304,11 @@ lb1 = tk.Label(aba_dominio, text='Insira abaixo a função:', font=("Helvetica",
 lb1.pack()
 entradadom = inputstr(aba_dominio)
 botao(aba_dominio, calculo_dominio_imagem, 'Calcular')
+botao(aba_dominio, exemplo_dominio_imagem, "Exemplo")
 botao(aba_dominio, return_to_menu,'Voltar para o menu')
 resultado_text_dom = tk.Text(aba_dominio, height=12, width=52)
 resultado_text_dom.pack(padx=10 , pady=10)
-resultado_text_dom.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
+resultado_text_dom.tag_configure("margin", lmargin1=10, lmargin2=10, rmargin=10)
 
 
 # Aba Raiz 
@@ -283,7 +331,7 @@ resultado_text_raiz.insert(tk.END,
 
 
 # adicionando imagem
-caminho_raiz = 'raiz.png'
+caminho_raiz = 'image/raiz.png'
 imagem_raiz = tk.PhotoImage(file=caminho_raiz)
 imagem_raiz = imagem_raiz.subsample(2, 2)
 lb_iii = tk.Label(aba_raizes)
@@ -302,6 +350,7 @@ lb6 = tk.Label(aba_limite, text='variável tende para que número?', font=("Helv
 lb6.pack()
 entradatend = inputstr(aba_limite)
 botao(aba_limite, calculo_limite , 'Calcular')
+botao(aba_limite, exemplo_limite, "Exemplo")
 botao(aba_limite, return_to_menu, 'Voltar para o menu')
 resultado_text_limite = tk.Text(aba_limite, height=12, width=55)
 resultado_text_limite.pack(padx=10 , pady=10)
@@ -313,7 +362,7 @@ resultado_text_limite.insert(tk.END,
 
 
 #adicionando imagem
-caminho_lim = 'limit.png'
+caminho_lim = 'image/limit.png'
 imagem_lim = tk.PhotoImage(file=caminho_lim)
 imagem_lim = imagem_lim.subsample(2, 2)
 lb_ii = tk.Label(aba_limite)
@@ -332,6 +381,7 @@ lb8 = tk.Label(aba_derivada, text='Insira o ponto:', font=("Helvetica", 12))
 lb8.pack()
 entradaponto = inputstr(aba_derivada)
 botao(aba_derivada, calculo_derivada , 'Calcular')
+botao(aba_derivada, exemplo_derivada, "Exemplo")
 botao(aba_derivada, return_to_menu , 'Voltar para o menu')
 resultado_text_deriv = tk.Text(aba_derivada, height=12, width=55)
 resultado_text_deriv.pack(padx=10 , pady=10)
@@ -344,7 +394,7 @@ botao(aba_derivada, plot_func_tangente, 'Plotar Função e Reta Tangente')
 
 
 # adicionando imagem
-caminho = 'deriva.png'
+caminho = 'image/deriva.png'
 imagem = tk.PhotoImage(file=caminho)
 lb_i = tk.Label(aba_derivada)
 lb_i.pack(padx=10)
@@ -376,14 +426,16 @@ lb12 = tk.Label(aba_integrais , text="Limite superior (opcional):" , font=("Helv
 lb12.pack()
 entrada_limite_sup = inputstr(aba_integrais)
 botao(aba_integrais, calculo_integral , 'Calcular')
+botao(aba_integrais, exemplo_integral, "Exemplo")
 botao(aba_integrais, return_to_menu, 'Voltar para o menu')
 resultado_text_integral = tk.Text(aba_integrais, height=12, width=55)
 resultado_text_integral.pack(padx=10 , pady=10)
 resultado_text_integral.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
+resultado_text_integral.insert(tk.END , f"\n\nA integral de uma função é uma medida da área sob a curva dessa função, em um intervalo específico. Se a função é contínua em um intervalo [a, b], a integral definida dessa função, denotada por ∫(de a a b) f(x) dx, representa a soma das áreas de infinitos retângulos infinitamente estreitos que se encaixam sob a curva de f(x) de x=a até x=b.\n\n fonte:  Munem, M.A..; Foulis, D.J. Cálculo - Rio de Janeiro - Guanabara Dois , 1982. v1.")
 
 
 # adicionando imagem
-caminho_integral = 'integral.png'
+caminho_integral = 'image/integral.png'
 imagem_integral = tk.PhotoImage(file=caminho_integral)
 imagem_integral = imagem_integral.subsample(2, 2)
 lb_iiii = tk.Label(aba_integrais)
