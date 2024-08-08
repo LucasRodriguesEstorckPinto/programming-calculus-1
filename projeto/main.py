@@ -44,7 +44,7 @@ def inputstr(pai):
     return entry
 
 def botao(pai, func, texto):
-    tk.Button(pai, text=texto, command=func, pady=3, padx=4, bd=1, relief=tk.SOLID, width=20).pack()
+    tk.Button(pai, text=texto, command=func, pady=3, padx=4, bd=1, relief=tk.SOLID, width=25).pack()
 
 def calculo_derivada():
     global resultado_text_deriv
@@ -94,6 +94,7 @@ def raiz():
     except ValueError:
         messagebox.showerror("Erro", "Por favor, forneça um índice e/ou número válido para calcular a raiz.")
 
+
 def plot_grafico():
     global resultado_text_grafico
     try:
@@ -101,24 +102,99 @@ def plot_grafico():
         func_str = entrada_grafico.get()
         func_list = [sp.sympify(func.strip()) for func in func_str.split(',')]
         func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_list]
-        x_vals = np.linspace(-10, 10, 100)
+        interval = (intervalo.get().split(','))
+        interval_int = [float(val) for val in interval]
+        x_vals = np.linspace(interval_int[0], interval_int[1], 100)
         plt.figure()
+        
+        result_text = ""
+        critical_points = []  # Lista para armazenar os pontos críticos e de inflexão
+        inflection_points = []
+
         for func, func_numeric in zip(func_list, func_numeric_list):
             y_vals = func_numeric(x_vals)
             plt.plot(x_vals, y_vals, label=f'${sp.latex(func)}$')
-        
+            
+            # Calcular a primeira e segunda derivada
+            first_derivative = sp.diff(func, x)
+            second_derivative = sp.diff(first_derivative, x)
+            
+            # Pontos críticos e de inflexão
+            crit_points = sp.solve(first_derivative, x, domain=sp.S.Reals)
+            inflex_points = sp.solve(second_derivative, x, domain=sp.S.Reals)
+            
+            # Filtrar os pontos críticos e de inflexão dentro do intervalo de plotagem
+            crit_points = [p.evalf() for p in crit_points if p.is_real and interval_int[0] <= p.evalf() <= interval_int[1]]
+            inflex_points = [p.evalf() for p in inflex_points if p.is_real and interval_int[0] <= p.evalf() <= interval_int[1]]
+            
+            # Adicionar pontos críticos e de inflexão à lista
+            for p in crit_points:
+                y_p = func.subs(x, p).evalf()
+                # Verificar o tipo de ponto crítico usando a primeira derivada
+                left_val = p - 0.01
+                right_val = p + 0.01
+                left_slope = first_derivative.subs(x, left_val).evalf()
+                right_slope = first_derivative.subs(x, right_val).evalf()
+                
+                if left_slope > 0 and right_slope < 0:
+                    point_type = "Máximo"
+                elif left_slope < 0 and right_slope > 0:
+                    point_type = "Mínimo"
+                else:
+                    point_type = "Ponto de Sela"
+                
+                critical_points.append((p, y_p, point_type))
+            
+            for p in inflex_points:
+                y_p = func.subs(x, p).evalf()
+                inflection_points.append((p, y_p))
+            
+            # Determinar intervalos de crescimento e decrescimento
+            growth_intervals = []
+            decay_intervals = []
+            crit_points_sorted = sorted(crit_points)
+            
+            test_points = [interval_int[0]] + crit_points_sorted + [interval_int[1]]
+            
+            for i in range(len(test_points) - 1):
+                test_val = (test_points[i] + test_points[i + 1]) / 2
+                if first_derivative.subs(x, test_val) > 0:
+                    growth_intervals.append((test_points[i], test_points[i + 1]))
+                else:
+                    decay_intervals.append((test_points[i], test_points[i + 1]))
+                    
+            # Determinar intervalos de concavidade
+            concave_up_intervals = []
+            concave_down_intervals = []
+            inflex_points_sorted = sorted(inflex_points)
+            
+            test_points = [interval_int[0]] + inflex_points_sorted + [interval_int[1]]
+            
+            for i in range(len(test_points) - 1):
+                test_val = (test_points[i] + test_points[i + 1]) / 2
+                if second_derivative.subs(x, test_val) > 0:
+                    concave_up_intervals.append((test_points[i], test_points[i + 1]))
+                else:
+                    concave_down_intervals.append((test_points[i], test_points[i + 1]))
+                    
+            result_text += f"Função: {func}\n"
+            result_text += "Intervalos de Crescimento: " + ", ".join([f"({a}, {b})" for a, b in growth_intervals]) + "\n"
+            result_text += "Intervalos de Decrescimento: " + ", ".join([f"({a}, {b})" for a, b in decay_intervals]) + "\n"
+            result_text += "Intervalos de Concavidade para Cima: " + ", ".join([f"({a}, {b})" for a, b in concave_up_intervals]) + "\n"
+            result_text += "Intervalos de Concavidade para Baixo: " + ", ".join([f"({a}, {b})" for a, b in concave_down_intervals]) + "\n"
+            result_text += f"\n"
+
         if show_points_var.get():
-            for func in func_list:
-                crit_points = sp.solve(sp.diff(func, x), x)
-                inflex_points = sp.solve(sp.diff(func, x, x), x)
+            for cp, y_cp, point_type in critical_points:
+                if point_type == "Mínimo":
+                    plt.plot(cp, y_cp, 'bo', label=f'{point_type} ({cp:.2f}, {y_cp:.2f})')
+                elif point_type == "Máximo":
+                    plt.plot(cp, y_cp, 'ro', label=f'{point_type} ({cp:.2f}, {y_cp:.2f})')
+                else:
+                    plt.plot(cp, y_cp, 'yo', label=f'{point_type} ({cp:.2f}, {y_cp:.2f})')
                 
-                for cp in crit_points:
-                    if cp.is_real:
-                        plt.plot(cp, func.subs(x, cp), 'ro', label='Ponto Crítico')
-                
-                for ip in inflex_points:
-                    if ip.is_real:
-                        plt.plot(ip, func.subs(x, ip), 'go', label='Ponto de Inflexão')
+            for ip, y_ip in inflection_points:
+                plt.plot(ip, y_ip, 'go', label=f'Ponto de Inflexão ({ip:.2f}, {y_ip:.2f})')
 
         plt.axhline(0, color='black', lw=0.6)  # Linha no eixo x
         plt.axvline(0, color='black', lw=0.6)  # Linha no eixo y
@@ -128,10 +204,11 @@ def plot_grafico():
         plt.legend()
         plt.grid(True)
         plt.show()
+        
         resultado_text_grafico.delete(1.0, tk.END)
-        resultado_text_grafico.insert(tk.END, "Gráfico plotado com sucesso!")
+        resultado_text_grafico.insert(tk.END, result_text + "Gráfico plotado com sucesso!")
     except Exception as e:
-        messagebox.showerror("Erro", "Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n{e}")
 
 def calculo_dominio_imagem():
     global resultado_text_dom
@@ -226,6 +303,20 @@ def plot_func_tangente():
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.")
 
+
+
+def exemplo_raiz():
+    example_text = ("Exemplo de Raiz Quadrada:\n"
+        "Número: 256\n"
+        "Definição: A raiz quadrada de um número é um valor que, quando multiplicado por si mesmo, "
+        "resulta no número original.\n"
+        "Cálculo: A raiz quadrada de 256 é 16, pois 16 * 16 = 256.\n"
+        "Propriedades: A raiz quadrada de um número positivo é sempre um número positivo. "
+        "Neste caso, a raiz quadrada de 256 é um valor exato e inteiro, 16.")
+    resultado_text_raiz.delete(1.0 , tk.END)
+    resultado_text_raiz.insert(tk.END , example_text)
+
+
 def exemplo_dominio_imagem():
     example_text = (
         "Exemplo de Domínio e Imagem:\n"
@@ -319,6 +410,7 @@ lb3 = tk.Label(aba_raizes, text='insira o índice:', font=("Helvetica", 12))  # 
 lb3.pack()
 entradaindice = inputstr(aba_raizes)  # Novo campo para o índice
 botao(aba_raizes, raiz , 'Calcular')
+botao(aba_raizes, exemplo_raiz, "Exemplo")
 botao(aba_raizes, return_to_menu , 'Voltar para o menu')
 resultado_text_raiz = tk.Text(aba_raizes, height=12, width=55)
 resultado_text_raiz.pack(padx=10 , pady=10)
@@ -405,6 +497,7 @@ lb_i.image = imagem
 lb9 = tk.Label(aba_graficos, text='Insira a função (use "x" como variável):', font=("Helvetica", 12))
 lb9.pack()
 entrada_grafico = inputstr(aba_graficos)
+intervalo = inputstr(aba_graficos)
 show_points_var = tk.IntVar()
 show_points_checkbox = tk.Checkbutton(aba_graficos, text="Mostrar pontos de inflexão, mínimos e máximos", variable=show_points_var)
 show_points_checkbox.pack()
