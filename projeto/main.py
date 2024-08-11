@@ -4,6 +4,7 @@ import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 
+font = ('Arial' , 12)
 
 def show_menu():
     menu_frame.pack()
@@ -39,12 +40,12 @@ def return_to_menu():
     show_menu()
 
 def inputstr(pai):
-    entry = tk.Entry(pai, width=40, bd=1, relief=tk.SOLID)
+    entry = tk.Entry(pai, width=40, bd=1, relief=tk.SOLID , font=font)
     entry.pack(pady=10)
     return entry
 
 def botao(pai, func, texto):
-    tk.Button(pai, text=texto, command=func, pady=3, padx=4, bd=1, relief=tk.SOLID, width=25).pack()
+    tk.Button(pai, text=texto, command=func, pady=3, padx=4, bd=1, relief=tk.SOLID, width=25 , font=font).pack()
 
 def calculo_derivada():
     global resultado_text_deriv
@@ -88,7 +89,19 @@ def raiz():
         if not indice_input:                # Verificando se o campo de entrada está vazio
             raise ValueError("Índice não fornecido")
         indice = int(indice_input)
-        raiz_value = pow(numero, 1/indice)
+        
+        if indice == 2:
+            tolerancia = 1e-10
+            x = numero /2 # estimativa inicial 
+            
+            while True:
+                raiz_value = 0.5 * (x + numero / x)
+                if abs(raiz_value - x) < tolerancia:
+                    break
+                x = raiz_value
+        else: 
+            raiz_value = pow(numero, 1/indice)
+        
         resultado_text_raiz.delete(1.0, tk.END)
         resultado_text_raiz.insert(tk.END, f"A raíz {indice}-ésima de {numero} é: {raiz_value:.4}")
     except ValueError:
@@ -379,7 +392,7 @@ options = ["Domínio e Imagem de Funções", "Raiz", "Limites", "Derivadas", "Gr
 commands = [show_domain_image_section, show_roots_section, show_limits_section, show_derivatives_section, show_graphs_section, show_integrals_section]
 
 for i, option in enumerate(options):
-    button = tk.Button(menu_frame, text=option, width=40, command=commands[i], relief="raised", bg="#f0f0f0", bd=0.5)
+    button = tk.Button(menu_frame, text=option, width=40, command=commands[i], relief="raised", bg="#f0f0f0", bd=0.5 , font=font)
     button.pack(pady=10, ipadx=10, ipady=5)
 
 # Abas e funcionalidades de cada seção
@@ -397,7 +410,7 @@ entradadom = inputstr(aba_dominio)
 botao(aba_dominio, calculo_dominio_imagem, 'Calcular')
 botao(aba_dominio, exemplo_dominio_imagem, "Exemplo")
 botao(aba_dominio, return_to_menu,'Voltar para o menu')
-resultado_text_dom = tk.Text(aba_dominio, height=12, width=52)
+resultado_text_dom = tk.Text(aba_dominio, height=12, width=52, font = font)
 resultado_text_dom.pack(padx=10 , pady=10)
 resultado_text_dom.tag_configure("margin", lmargin1=10, lmargin2=10, rmargin=10)
 
@@ -412,7 +425,7 @@ entradaindice = inputstr(aba_raizes)  # Novo campo para o índice
 botao(aba_raizes, raiz , 'Calcular')
 botao(aba_raizes, exemplo_raiz, "Exemplo")
 botao(aba_raizes, return_to_menu , 'Voltar para o menu')
-resultado_text_raiz = tk.Text(aba_raizes, height=12, width=55)
+resultado_text_raiz = tk.Text(aba_raizes, height=12, width=55 , font=font)
 resultado_text_raiz.pack(padx=10 , pady=10)
 resultado_text_raiz.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
 
@@ -444,7 +457,7 @@ entradatend = inputstr(aba_limite)
 botao(aba_limite, calculo_limite , 'Calcular')
 botao(aba_limite, exemplo_limite, "Exemplo")
 botao(aba_limite, return_to_menu, 'Voltar para o menu')
-resultado_text_limite = tk.Text(aba_limite, height=12, width=55)
+resultado_text_limite = tk.Text(aba_limite, height=12, width=55 , font=font)
 resultado_text_limite.pack(padx=10 , pady=10)
 resultado_text_limite.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
 
@@ -475,7 +488,7 @@ entradaponto = inputstr(aba_derivada)
 botao(aba_derivada, calculo_derivada , 'Calcular')
 botao(aba_derivada, exemplo_derivada, "Exemplo")
 botao(aba_derivada, return_to_menu , 'Voltar para o menu')
-resultado_text_deriv = tk.Text(aba_derivada, height=12, width=55)
+resultado_text_deriv = tk.Text(aba_derivada, height=12, width=55 , font=font)
 resultado_text_deriv.pack(padx=10 , pady=10)
 resultado_text_deriv.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
 
@@ -503,25 +516,25 @@ show_points_checkbox = tk.Checkbutton(aba_graficos, text="Mostrar pontos de infl
 show_points_checkbox.pack()
 botao(aba_graficos, plot_grafico , 'Calcular')
 botao(aba_graficos, return_to_menu, 'Voltar para o menu')
-resultado_text_grafico = tk.Text(aba_graficos, height=12, width=55)
+resultado_text_grafico = tk.Text(aba_graficos, height=12, width=55, font=font)
 resultado_text_grafico.pack(padx=10 , pady=10)
 resultado_text_grafico.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
 
 
 # Aba Integrais 
-lb10 = tk.Label(aba_integrais , text="Insira a função:" , font=("Helvetica", 12))
+lb10 = tk.Label(aba_integrais , text="Insira a função:" , font=("Arial", 12))
 lb10.pack()
 entrada_integrais = inputstr(aba_integrais)
-lb11 = tk.Label(aba_integrais , text="Limite inferior (opcional):" , font=("Helvetica", 12))
+lb11 = tk.Label(aba_integrais , text="Limite inferior (opcional):" , font=("Arial", 12))
 lb11.pack()
 entrada_limite_inf = inputstr(aba_integrais)
-lb12 = tk.Label(aba_integrais , text="Limite superior (opcional):" , font=("Helvetica", 12))
+lb12 = tk.Label(aba_integrais , text="Limite superior (opcional):" , font=("Arial", 12))
 lb12.pack()
 entrada_limite_sup = inputstr(aba_integrais)
 botao(aba_integrais, calculo_integral , 'Calcular')
 botao(aba_integrais, exemplo_integral, "Exemplo")
 botao(aba_integrais, return_to_menu, 'Voltar para o menu')
-resultado_text_integral = tk.Text(aba_integrais, height=12, width=55)
+resultado_text_integral = tk.Text(aba_integrais, height=12, width=55,font=font) 
 resultado_text_integral.pack(padx=10 , pady=10)
 resultado_text_integral.tag_configure("padding", lmargin1=10, lmargin2=10, rmargin=10)
 resultado_text_integral.insert(tk.END , f"\n\nA integral de uma função é uma medida da área sob a curva dessa função, em um intervalo específico. Se a função é contínua em um intervalo [a, b], a integral definida dessa função, denotada por ∫(de a a b) f(x) dx, representa a soma das áreas de infinitos retângulos infinitamente estreitos que se encaixam sob a curva de f(x) de x=a até x=b.\n\n fonte:  Munem, M.A..; Foulis, D.J. Cálculo - Rio de Janeiro - Guanabara Dois , 1982. v1.")
