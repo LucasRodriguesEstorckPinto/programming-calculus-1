@@ -3,6 +3,7 @@ from tkinter import messagebox
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
+import webbrowser
 
 font = ('Arial' , 12)
 
@@ -209,8 +210,8 @@ def plot_grafico():
             for ip, y_ip in inflection_points:
                 plt.plot(ip, y_ip, 'go', label=f'Ponto de Inflexão ({ip:.2f}, {y_ip:.2f})')
 
-        plt.axhline(0, color='black', lw=0.6)  # Linha no eixo x
-        plt.axvline(0, color='black', lw=0.6)  # Linha no eixo y
+        plt.axhline(0, color='red', lw=0.8)  # Linha no eixo x
+        plt.axvline(0, color='red', lw=0.8)  # Linha no eixo y
         plt.title('Gráfico das Funções')
         plt.xlabel('x')
         plt.ylabel('y')
@@ -234,33 +235,40 @@ def calculo_dominio_imagem():
         domain = sp.S.Reals
         singularities = sp.solve(sp.denom(func), x)
         for singularity in singularities:
-            domain = domain - sp.FiniteSet(singularity)
+            if singularity.is_real:
+                domain = domain - sp.FiniteSet(singularity)
 
         # Calculando a imagem
-        critical_points = sp.solve(sp.diff(func, x), x)
         y_values = []
+        
+        # Pontos críticos
+        critical_points = sp.solve(sp.diff(func, x), x)
 
-        # Avaliando a função nos pontos críticos e nos extremos do domínio
         for cp in critical_points:
             if cp.is_real:
                 y_values.append(func.subs(x, cp))
 
         # Considerando os limites nos extremos do domínio
         try:
-            y_values.append(sp.limit(func, x, sp.oo))
+            limit_pos_inf = sp.limit(func, x, sp.oo)
+            if limit_pos_inf.is_real:
+                y_values.append(limit_pos_inf)
         except:
             pass
+        
         try:
-            y_values.append(sp.limit(func, x, -sp.oo))
+            limit_neg_inf = sp.limit(func, x, -sp.oo)
+            if limit_neg_inf.is_real:
+                y_values.append(limit_neg_inf)
         except:
             pass
 
-        # Usando alguns valores numéricos se não houver pontos críticos reais
+        # Usando valores numéricos se não houver pontos críticos reais
         if not y_values:
             x_values = np.linspace(-100, 100, 1000)
             y_values = [func.subs(x, val) for val in x_values]
 
-        # Calculando os valores mínimo e máximo
+        # Calculando os valores mínimo e máximo da imagem
         min_value = min(y_values)
         max_value = max(y_values)
         image = sp.Interval(min_value, max_value)
@@ -301,20 +309,51 @@ def calculo_integral():
 
 def plot_func_tangente():
     try:
+        # Define a variável simbólica
         x = sp.Symbol('x')
+        
+        # Obtém a função inserida pelo usuário e a ponto
         func_str = entradaderiv.get()
         func = sp.sympify(func_str)
-        derivada = sp.diff(func, x)
         point = float(entradaponto.get())
+        
+        # Calcula a derivada da função
+        derivada = sp.diff(func, x)
+        
+        # Calcula o coeficiente angular da reta tangente
         coef_angular = derivada.subs(x, point)
+        
+        # Calcula a equação da reta tangente
         reta = func.subs(x, point) + coef_angular * (x - point)
         
-        entrada_grafico.delete(0, tk.END)
-        entrada_grafico.insert(0, f"{func_str}, {reta}")
+        # Converte as funções simbólicas para funções numéricas
+        func_num = sp.lambdify(x, func, "numpy")
+        reta_num = sp.lambdify(x, reta, "numpy")
         
-        plot_grafico()
+        # Gera os valores de x
+        x_vals = np.linspace(-10, 10, 400)
+        
+        # Calcula os valores de y para a função original e a reta tangente
+        y_vals_func = func_num(x_vals)
+        y_vals_reta = reta_num(x_vals)
+        
+        # Plota as funções
+        plt.figure()
+        plt.plot(x_vals, y_vals_func, label=f"f(x) = {func_str}")
+        plt.plot(x_vals, y_vals_reta, label=f"Tangente em x = {point}")
+        
+        # Configurações adicionais do gráfico
+        plt.axhline(0, color='red', lw=0.8)  # Linha no eixo x
+        plt.axvline(0, color='red', lw=0.8)  # Linha no eixo y
+        plt.title('Gráfico das Funções')
+        plt.xlabel('x')
+        plt.ylabel('y')
+        plt.legend()
+        plt.grid(True)
+        plt.show()
+
     except Exception as e:
-        messagebox.showerror("Erro", "Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico: {e}")
 
 
 
@@ -394,6 +433,9 @@ commands = [show_domain_image_section, show_roots_section, show_limits_section, 
 for i, option in enumerate(options):
     button = tk.Button(menu_frame, text=option, width=40, command=commands[i], relief="raised", bg="#f0f0f0", bd=0.5 , font=font)
     button.pack(pady=10, ipadx=10, ipady=5)
+
+button = tk.Button(menu_frame , text="Manual do programa" , width=40 , command=lambda: webbrowser.open('https://pt.stackoverflow.com/questions/348620/abrindo-uma-url-a-partir-do-tkinter') , relief="raised" ,bg="#f0f0f0" , bd=0.5 , font=font)
+button.pack(pady=10, ipadx=10, ipady=5) 
 
 # Abas e funcionalidades de cada seção
 aba_dominio = tk.Frame(app)
@@ -507,9 +549,11 @@ lb_i.config(image=imagem, width=445, height=101)
 lb_i.image = imagem
 
 # Aba Gráficos
-lb9 = tk.Label(aba_graficos, text='Insira a função (use "x" como variável):', font=("Helvetica", 12))
+lb9 = tk.Label(aba_graficos, text='Insira a função (use "x" como variável):', font=("Arial", 12))
 lb9.pack()
 entrada_grafico = inputstr(aba_graficos)
+lb13 = tk.Label(aba_graficos, text='Insira o intervalo:', font=("Arial", 12))
+lb13.pack()
 intervalo = inputstr(aba_graficos)
 show_points_var = tk.IntVar()
 show_points_checkbox = tk.Checkbutton(aba_graficos, text="Mostrar pontos de inflexão, mínimos e máximos", variable=show_points_var)
