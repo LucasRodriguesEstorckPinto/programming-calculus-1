@@ -4,6 +4,9 @@ import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import webbrowser
+import matplotlib
+
+matplotlib.use('TkAgg')
 
 font = ('Arial' , 13)
 
@@ -124,6 +127,8 @@ def plot_grafico():
         result_text = ""
         critical_points = []  # Lista para armazenar os pontos críticos e de inflexão
         inflection_points = []
+        vertical_asymptotes = []
+        horizontal_asymptotes = []
 
         for func, func_numeric in zip(func_list, func_numeric_list):
             y_vals = func_numeric(x_vals)
@@ -140,6 +145,21 @@ def plot_grafico():
             # Filtrar os pontos críticos e de inflexão dentro do intervalo de plotagem
             crit_points = [p.evalf() for p in crit_points if p.is_real and interval_int[0] <= p.evalf() <= interval_int[1]]
             inflex_points = [p.evalf() for p in inflex_points if p.is_real and interval_int[0] <= p.evalf() <= interval_int[1]]
+            
+            # Detectar assíntotas verticais: onde o denominador é zero
+            if func.is_rational_function(x):
+                denom = sp.denom(func)
+                vertical_asymptotes = sp.solve(denom, x, domain=sp.S.Reals)
+                vertical_asymptotes = [a.evalf() for a in vertical_asymptotes if interval_int[0] <= a.evalf() <= interval_int[1]]
+
+            # Detectar assíntotas horizontais: limite de x para infinito e -infinito
+            lim_pos_inf = sp.limit(func, x, sp.oo)
+            lim_neg_inf = sp.limit(func, x, -sp.oo)
+            
+            if lim_pos_inf.is_finite:
+                horizontal_asymptotes.append(lim_pos_inf)
+            if lim_neg_inf.is_finite and lim_neg_inf != lim_pos_inf:
+                horizontal_asymptotes.append(lim_neg_inf)
             
             # Adicionar pontos críticos e de inflexão à lista
             for p in crit_points:
@@ -196,6 +216,10 @@ def plot_grafico():
             result_text += "Intervalos de Decrescimento: " + ", ".join([f"({a}, {b})" for a, b in decay_intervals]) + "\n"
             result_text += "Intervalos de Concavidade para Cima: " + ", ".join([f"({a}, {b})" for a, b in concave_up_intervals]) + "\n"
             result_text += "Intervalos de Concavidade para Baixo: " + ", ".join([f"({a}, {b})" for a, b in concave_down_intervals]) + "\n"
+            if vertical_asymptotes:
+                result_text += "Assíntotas Verticais em: " + ", ".join([f"x = {a}" for a in vertical_asymptotes]) + "\n"
+            if horizontal_asymptotes:
+                result_text += "Assíntotas Horizontais em: " + ", ".join([f"y = {a}" for a in horizontal_asymptotes]) + "\n"
             result_text += f"\n"
 
         if show_points_var.get():
@@ -223,6 +247,7 @@ def plot_grafico():
         resultado_text_grafico.insert(tk.END, result_text + "Gráfico plotado com sucesso!")
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n{e}")
+
 
 def calculo_dominio_imagem():
     global resultado_text_dom
