@@ -5,7 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import webbrowser
 
-font = ('Arial' , 12)
+font = ('Arial' , 13)
 
 def show_menu():
     menu_frame.pack()
@@ -282,28 +282,33 @@ def calculo_dominio_imagem():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular o domínio e a imagem: {e}")
 
+import sympy as sp
+import tkinter as tk
+from tkinter import messagebox
+
 def calculo_integral():
-    global resultado_text_int
+    global resultado_text_integral  # Certifique-se de que o nome da variável está correto
     try:
         func_str = entrada_integrais.get()
         x = sp.symbols('x')
         func = sp.sympify(func_str)
+        
+        # Obtendo os limites inferiores e superiores, se houver
         limite_inf = entrada_limite_inf.get().strip()
         limite_sup = entrada_limite_sup.get().strip()
 
         if limite_inf and limite_sup:
+            # Calculando a integral definida
             limite_inf = float(limite_inf)
             limite_sup = float(limite_sup)
             integral_def = sp.integrate(func, (x, limite_inf, limite_sup))
-            integral_def_str = str(integral_def)
             resultado_text_integral.delete(1.0, tk.END)
-            resultado_text_integral.insert(tk.END, f"A integral definida da função de {limite_inf} a {limite_sup} é: {integral_def_str:.3}\n")
+            resultado_text_integral.insert(tk.END, f"A integral definida da função de {limite_inf} a {limite_sup} é: {integral_def}\n")
         else:
             # Calculando a integral indefinida
             integral = sp.integrate(func, x)
-            integral_str = str(integral)
             resultado_text_integral.delete(1.0, tk.END)
-            resultado_text_integral.insert(tk.END, f"A integral indefinida da função é: {integral_str} + C\n")
+            resultado_text_integral.insert(tk.END, f"A integral indefinida da função é: {integral} + C\n")
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral: {e}")
 
@@ -419,7 +424,7 @@ def exemplo_integral():
 
 app = tk.Tk()
 app.title('DDX')
-app.geometry("800x800")
+app.geometry("700x800")
 
 menu_frame = tk.Frame(app)
 menu_frame.pack()
@@ -434,7 +439,7 @@ for i, option in enumerate(options):
     button = tk.Button(menu_frame, text=option, width=40, command=commands[i], relief="raised", bg="#f0f0f0", bd=0.5 , font=font)
     button.pack(pady=10, ipadx=10, ipady=5)
 
-button = tk.Button(menu_frame , text="Manual do programa" , width=40 , command=lambda: webbrowser.open('https://pt.stackoverflow.com/questions/348620/abrindo-uma-url-a-partir-do-tkinter') , relief="raised" ,bg="#f0f0f0" , bd=0.5 , font=font)
+button = tk.Button(menu_frame , text="Manual do DDX" , width=40 , command=lambda: webbrowser.open('https://www.google.com') , relief="raised" ,bg="#f0f0f0" , bd=0.5 , font=font)
 button.pack(pady=10, ipadx=10, ipady=5) 
 
 # Abas e funcionalidades de cada seção
