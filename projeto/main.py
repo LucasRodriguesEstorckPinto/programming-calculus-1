@@ -58,11 +58,17 @@ def calculo_derivada():
         func_str = entradaderiv.get()
         func = sp.sympify(func_str)
         derivada = sp.diff(func, x)
-        point = float(entradaponto.get())
-        coef_angular = derivada.subs(x, point)
-        reta = (func.subs(x, point) + coef_angular * (x - point))
+        
         resultado_text_deriv.delete(1.0, tk.END)
-        resultado_text_deriv.insert(tk.END, f"A derivada da função é: {derivada}\nA equação da reta tangente é: {reta}\n\n")
+        resultado_text_deriv.insert(tk.END, f"A derivada da função é: {derivada}\n")
+        
+        # Verifica se o ponto foi inserido
+        point_str = entradaponto.get()
+        if point_str:
+            point = float(point_str)
+            coef_angular = derivada.subs(x, point)
+            reta = func.subs(x, point) + coef_angular * (x - point)
+            resultado_text_deriv.insert(tk.END, f"A equação da reta tangente é: {reta}\n\n")
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao calcular a derivada. Verifique sua entrada.")
 
