@@ -79,16 +79,26 @@ def calculo_limite():
         func = sp.sympify(func_str)
         variavel = sp.symbols(entradavar.get())
         valor_tendencia = float(entradatend.get())
-        
-        limite_esquerda = sp.limit(func, variavel, valor_tendencia, dir='-')
-        limite_direita = sp.limit(func, variavel, valor_tendencia, dir='+')
-        
-        resultado_text_limite.delete(1.0, tk.END)
+        direcao = direcao_var.get()  # Obtém a direção selecionada
 
-        if limite_esquerda == limite_direita:
-            resultado_text_limite.insert(tk.END, f"O limite da função é: {limite_esquerda}")
+        if direcao == "Ambos":
+            limite_esquerda = sp.limit(func, variavel, valor_tendencia, dir='-')
+            limite_direita = sp.limit(func, variavel, valor_tendencia, dir='+')
+            
+            resultado_text_limite.delete(1.0, tk.END)
+            if limite_esquerda == limite_direita:
+                resultado_text_limite.insert(tk.END, f"O limite da função é: {limite_esquerda}")
+            else:
+                resultado_text_limite.insert(tk.END, f"O limite da função não existe.")
         else:
-            resultado_text_limite.insert(tk.END, f"O limite da função não existe.")
+            if direcao == "Esquerda":
+                limite = sp.limit(func, variavel, valor_tendencia, dir='-')
+            elif direcao == "Direita":
+                limite = sp.limit(func, variavel, valor_tendencia, dir='+')
+            
+            resultado_text_limite.delete(1.0, tk.END)
+            resultado_text_limite.insert(tk.END, f"O limite da função pela {direcao.lower()} é: {limite}")
+
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao calcular o limite. Verifique sua entrada.")
 
@@ -254,7 +264,6 @@ def plot_grafico():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n{e}")
 
-
 def calculo_dominio_imagem():
     global resultado_text_dom
     try:
@@ -313,9 +322,6 @@ def calculo_dominio_imagem():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular o domínio e a imagem: {e}")
 
-import sympy as sp
-import tkinter as tk
-from tkinter import messagebox
 
 def calculo_integral():
     global resultado_text_integral  # Certifique-se de que o nome da variável está correto
@@ -532,6 +538,11 @@ entradavar = inputstr(aba_limite)
 lb6 = tk.Label(aba_limite, text='variável tende para que número?', font=("Helvetica", 12))
 lb6.pack()
 entradatend = inputstr(aba_limite)
+
+direcao_var = tk.StringVar(value="Ambos")  # Valor padrão é "Ambos"
+direcao_menu = tk.OptionMenu(aba_limite, direcao_var, "Esquerda", "Direita", "Ambos")
+direcao_menu.pack()
+
 botao(aba_limite, calculo_limite , 'Calcular')
 botao(aba_limite, exemplo_limite, "Exemplo")
 botao(aba_limite, return_to_menu, 'Voltar para o menu')
