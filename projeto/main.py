@@ -271,14 +271,10 @@ def calculo_dominio_imagem():
         x = sp.symbols('x')
         func = sp.sympify(func_str)
 
-        # Calculando o domínio
-        domain = sp.S.Reals
-        singularities = sp.solve(sp.denom(func), x)
-        for singularity in singularities:
-            if singularity.is_real:
-                domain = domain - sp.FiniteSet(singularity)
+        # Calculando o domínio diretamente
+        domain = sp.calculus.util.continuous_domain(func, x, sp.S.Reals)
 
-        # Calculando a imagem
+        # Calculando a imagem simplificada
         y_values = []
         
         # Pontos críticos
