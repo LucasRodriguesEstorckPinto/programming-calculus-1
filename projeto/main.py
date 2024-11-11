@@ -472,7 +472,7 @@ for i, option in enumerate(options):
     button = tk.Button(menu_frame, text=option, width=40, command=commands[i], relief="raised", bg="#f0f0f0", bd=0.5 , font=font)
     button.pack(pady=10, ipadx=10, ipady=5)
 
-button = tk.Button(menu_frame , text="Manual do DDX" , width=40 , command=lambda: webbrowser.open('https://www.google.com') , relief="raised" ,bg="#f0f0f0" , bd=0.5 , font=font)
+button = tk.Button(menu_frame , text="Manual do DDX" , width=40 , command=lambda: webbrowser.open('https://github.com/LucasRodriguesEstorckPinto/programming-calculus-1/blob/main/DDX%20MANUAL.pdf') , relief="raised" ,bg="#f0f0f0" , bd=0.5 , font=font)
 button.pack(pady=10, ipadx=10, ipady=5) 
 
 # Abas e funcionalidades de cada seção
