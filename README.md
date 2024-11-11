@@ -1,5 +1,5 @@
-# Quer baixar a versão mais recente do programa? (V5)
-[Clique aqui](https://www.mediafire.com/file/uif4qlfbg4mdkgq/DDX_V5.exe/file)
+# Quer baixar a versão mais recente do programa? (V7)
+[Clique aqui](https://mega.nz/folder/UqFwXaDA#6yI22PNEz781degGq_B0QQ)
 - Disponivel nativamente para o windows 10 em diante. Para Linux e MacOS, utilize o Wine
 
 # Como usar o DDX
