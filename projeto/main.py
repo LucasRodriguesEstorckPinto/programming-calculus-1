@@ -516,7 +516,7 @@ resultado_text_raiz.insert(tk.END,
 
 
 # adicionando imagem
-caminho_raiz = '../image/raiz.png'
+caminho_raiz = 'raiz.png'
 imagem_raiz = tk.PhotoImage(file=caminho_raiz)
 imagem_raiz = imagem_raiz.subsample(2, 2)
 lb_iii = tk.Label(aba_raizes)
@@ -552,7 +552,7 @@ resultado_text_limite.insert(tk.END,
 
 
 #adicionando imagem
-caminho_lim = '../image/limit.png'
+caminho_lim = 'limit.png'
 imagem_lim = tk.PhotoImage(file=caminho_lim)
 imagem_lim = imagem_lim.subsample(2, 2)
 lb_ii = tk.Label(aba_limite)
@@ -584,7 +584,7 @@ botao(aba_derivada, plot_func_tangente, 'Plotar Função e Reta Tangente')
 
 
 # adicionando imagem
-caminho = '../image/deriva.png'
+caminho = 'deriva.png'
 imagem = tk.PhotoImage(file=caminho)
 lb_i = tk.Label(aba_derivada)
 lb_i.pack(padx=10)
@@ -628,7 +628,7 @@ resultado_text_integral.insert(tk.END , f"\n\nA integral de uma função é uma 
 
 
 # adicionando imagem
-caminho_integral = '../image/integral.png'
+caminho_integral = 'integral.png'
 imagem_integral = tk.PhotoImage(file=caminho_integral)
 imagem_integral = imagem_integral.subsample(2, 2)
 lb_iiii = tk.Label(aba_integrais)
