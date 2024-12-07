@@ -264,34 +264,42 @@ def plot_grafico():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n{e}")
 
-def calculo_dominio_imagem():
-    global resultado_text_dom
+def calcular_dominio(func, x):
+    """Calcula o domínio analítico da função."""
     try:
-        func_str = entradadom.get()
-        x = sp.symbols('x')
-        func = sp.sympify(func_str)
+        return sp.calculus.util.continuous_domain(func, x, sp.S.Reals)
+    except Exception as e:
+        return f"Erro ao calcular o domínio: {e}"
 
-        # Calculando o domínio diretamente
-        domain = sp.calculus.util.continuous_domain(func, x, sp.S.Reals)
+def calcular_imagem(func, x, dominio):
+    """Calcula a imagem de uma função."""
+    try:
+        # Verifica se a função contém termos trigonométricos
+        func_str = str(func)
+        if any(trig in func_str for trig in ['sin', 'cos']):
+            return "[-1, 1]"
+        elif 'tan' in func_str or 'cot' in func_str:
+            return "Todos os reais (exceto singularidades)"
+        elif 'sec' in func_str or 'csc' in func_str:
+            return "(-∞, -1] ∪ [1, ∞)"
 
-        # Calculando a imagem simplificada
+        # Lista para armazenar valores de y
         y_values = []
-        
-        # Pontos críticos
-        critical_points = sp.solve(sp.diff(func, x), x)
 
+        # Pontos críticos (derivada igual a zero)
+        critical_points = sp.solve(sp.diff(func, x), x)
         for cp in critical_points:
             if cp.is_real:
                 y_values.append(func.subs(x, cp))
 
-        # Considerando os limites nos extremos do domínio
+        # Limites nos extremos do domínio
         try:
             limit_pos_inf = sp.limit(func, x, sp.oo)
             if limit_pos_inf.is_real:
                 y_values.append(limit_pos_inf)
         except:
             pass
-        
+
         try:
             limit_neg_inf = sp.limit(func, x, -sp.oo)
             if limit_neg_inf.is_real:
@@ -299,25 +307,57 @@ def calculo_dominio_imagem():
         except:
             pass
 
-        # Usando valores numéricos se não houver pontos críticos reais
-        if not y_values:
-            x_values = np.linspace(-100, 100, 1000)
-            y_values = [func.subs(x, val) for val in x_values]
+        # Cálculo numérico para validação adicional
+        dominio_numerico = np.linspace(-100, 100, 1000)
+        for val in dominio_numerico:
+            try:
+                y = func.subs(x, sp.Float(val))
+                if y.is_real and not y.has(sp.oo):  # Ignorar valores infinitos
+                    y_values.append(float(y))
+            except:
+                continue
 
-        # Calculando os valores mínimo e máximo da imagem
-        min_value = min(y_values)
-        max_value = max(y_values)
-        image = sp.Interval(min_value, max_value)
+        # Remove duplicatas e valores inválidos
+        y_values = list(set(y_values))
 
-        # Convertendo os resultados para strings
-        domain_str = str(domain)
-        image_str = str(image)
+        # Obtém valores mínimo e máximo
+        if y_values:
+            min_value = min(y_values)
+            max_value = max(y_values)
+            return f"[{min_value:.4f}, {max_value:.4f}]"
+        else:
+            return "Imagem indefinida (valores não reais ou não computáveis)"
+    except Exception as e:
+        return f"Erro ao calcular a imagem: {e}"
+
+def calculo_dominio_imagem():
+    global resultado_text_dom
+    try:
+        func_str = entradadom.get()
+        x = sp.symbols('x')
+        func = sp.sympify(func_str)
+
+        # Calcula domínio e imagem
+        dominio = calcular_dominio(func, x)
+
+        # Tratamento especial para domínio em erro
+        if isinstance(dominio, str) and "Erro" in dominio:
+            imagem = "Não foi possível calcular devido ao domínio inválido."
+        else:
+            imagem = calcular_imagem(func, x, dominio)
+
+        # Formata a saída
+        resultado = f"""Resultados:
+        ========================
+        Função: {func_str}
+        Domínio: {dominio}
+        Imagem: {imagem}
+        ========================"""
 
         resultado_text_dom.delete(1.0, tk.END)
-        resultado_text_dom.insert(tk.END, f"O domínio da função é: {domain_str}\nA imagem da função é: {image_str}\n")
+        resultado_text_dom.insert(tk.END, resultado)
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular o domínio e a imagem: {e}")
-
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular domínio e imagem: {e}")
 
 def calculo_integral():
     global resultado_text_integral  # Certifique-se de que o nome da variável está correto
