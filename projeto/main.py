@@ -128,205 +128,305 @@ def raiz():
         messagebox.showerror("Erro", "Por favor, forneça um índice e/ou número válido para calcular a raiz.")
 
 
+def numerical_roots(sym_expr, var, lower, upper, num_points=500):
+    """
+    Procura raízes de sym_expr no intervalo [lower, upper] usando
+    uma busca por mudança de sinal e sp.nsolve.
+    Retorna uma lista de raízes numéricas.
+    """
+    func_num = sp.lambdify(var, sym_expr, 'numpy')
+    sample_points = np.linspace(lower, upper, num_points)
+    roots = []
+    for i in range(len(sample_points) - 1):
+        a = sample_points[i]
+        b = sample_points[i + 1]
+        fa = func_num(a)
+        fb = func_num(b)
+        # Se o valor for exatamente zero, adiciona a raiz
+        if fa == 0:
+            if lower <= a <= upper and not any(abs(a - r) < 1e-5 for r in roots):
+                roots.append(a)
+        # Se houver mudança de sinal, tenta encontrar a raiz
+        elif fa * fb < 0:
+            try:
+                r = sp.nsolve(sym_expr, a)
+                r_val = float(r.evalf())
+                if lower <= r_val <= upper and not any(abs(r_val - rr) < 1e-5 for rr in roots):
+                    roots.append(r_val)
+            except Exception:
+                pass
+    return roots
+
 def plot_grafico():
     global resultado_text_grafico
     try:
-        x = sp.Symbol('x')
-        func_str = entrada_grafico.get()
-        func_list = [sp.sympify(func.strip()) for func in func_str.split(',')]
-        func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_list]
-        interval = (intervalo.get().split(','))
-        interval_int = [float(val) for val in interval]
-        x_vals = np.linspace(interval_int[0], interval_int[1], 100)
-        plt.figure()
+        # Utiliza o estilo "ggplot" nativo do matplotlib para uma aparência mais moderna
+        plt.style.use('ggplot')
+        plt.rcParams.update({
+            'font.size': 12,
+            'axes.titlesize': 18,
+            'axes.labelsize': 14,
+            'legend.fontsize': 12
+        })
         
+        # Define a variável simbólica e lê as entradas da interface
+        x = sp.symbols('x')
+        func_str = entrada_grafico.get()  # Exemplo: "sin(x)*x**2, cos(x)"
+        func_list = [sp.sympify(f.strip()) for f in func_str.split(',')]
+        func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_list]
+
+        # Obtém o intervalo de análise (ex.: "-10,10")
+        intervalo_str = intervalo.get()
+        lower, upper = map(float, intervalo_str.split(','))
+        x_vals = np.linspace(lower, upper, 800)
+        
+        # Cria a figura e o eixo
+        fig, ax = plt.subplots(figsize=(10, 6))
         result_text = ""
-        critical_points = []  # Lista para armazenar os pontos críticos e de inflexão
-        inflection_points = []
-        vertical_asymptotes = []
-        horizontal_asymptotes = []
-
+        
         for func, func_numeric in zip(func_list, func_numeric_list):
+            # Plota a função
             y_vals = func_numeric(x_vals)
-            plt.plot(x_vals, y_vals, label=f'${sp.latex(func)}$')
+            ax.plot(x_vals, y_vals, label=f'${sp.latex(func)}$', linewidth=2.5)
             
-            # Calcular a primeira e segunda derivada
-            first_derivative = sp.diff(func, x)
-            second_derivative = sp.diff(first_derivative, x)
+            # Calcula as derivadas
+            fprime = sp.diff(func, x)
+            fsecond = sp.diff(fprime, x)
             
-            # Pontos críticos e de inflexão
-            crit_points = sp.solve(first_derivative, x, domain=sp.S.Reals)
-            inflex_points = sp.solve(second_derivative, x, domain=sp.S.Reals)
+            # --- Pontos Críticos (f'(x)=0) ---
+            cp_candidates = sp.solveset(fprime, x, domain=sp.Interval(lower, upper))
+            cp = []
+            if isinstance(cp_candidates, sp.ConditionSet) or not cp_candidates:
+                cp = numerical_roots(fprime, x, lower, upper, num_points=1000)
+            else:
+                cp_candidates = list(cp_candidates)
+                for candidate in cp_candidates:
+                    try:
+                        candidate_val = float(candidate.evalf())
+                        if lower <= candidate_val <= upper:
+                            cp.append(candidate_val)
+                    except Exception:
+                        continue
+                numeric_cp = numerical_roots(fprime, x, lower, upper, num_points=1000)
+                for r in numeric_cp:
+                    if not any(abs(r - cr) < 1e-5 for cr in cp):
+                        cp.append(r)
+            cp = sorted(cp)
             
-            # Filtrar os pontos críticos e de inflexão dentro do intervalo de plotagem
-            crit_points = [p.evalf() for p in crit_points if p.is_real and interval_int[0] <= p.evalf() <= interval_int[1]]
-            inflex_points = [p.evalf() for p in inflex_points if p.is_real and interval_int[0] <= p.evalf() <= interval_int[1]]
+            # --- Pontos de Inflexão (f''(x)=0) ---
+            ip_candidates = sp.solveset(fsecond, x, domain=sp.Interval(lower, upper))
+            ip = []
+            if isinstance(ip_candidates, sp.ConditionSet) or not ip_candidates:
+                ip = numerical_roots(fsecond, x, lower, upper, num_points=1000)
+            else:
+                ip_candidates = list(ip_candidates)
+                for candidate in ip_candidates:
+                    try:
+                        candidate_val = float(candidate.evalf())
+                        if lower <= candidate_val <= upper:
+                            ip.append(candidate_val)
+                    except Exception:
+                        continue
+                numeric_ip = numerical_roots(fsecond, x, lower, upper, num_points=1000)
+                for r in numeric_ip:
+                    if not any(abs(r - rp) < 1e-5 for rp in ip):
+                        ip.append(r)
+            ip = sorted(ip)
             
-            # Detectar assíntotas verticais: onde o denominador é zero
-            if func.is_rational_function(x):
-                denom = sp.denom(func)
-                vertical_asymptotes = sp.solve(denom, x, domain=sp.S.Reals)
-                vertical_asymptotes = [a.evalf() for a in vertical_asymptotes if interval_int[0] <= a.evalf() <= interval_int[1]]
-
-            # Detectar assíntotas horizontais: limite de x para infinito e -infinito
-            lim_pos_inf = sp.limit(func, x, sp.oo)
-            lim_neg_inf = sp.limit(func, x, -sp.oo)
-            
-            if lim_pos_inf.is_finite:
-                horizontal_asymptotes.append(lim_pos_inf)
-            if lim_neg_inf.is_finite and lim_neg_inf != lim_pos_inf:
-                horizontal_asymptotes.append(lim_neg_inf)
-            
-            # Adicionar pontos críticos e de inflexão à lista
-            for p in crit_points:
-                y_p = func.subs(x, p).evalf()
-                # Verificar o tipo de ponto crítico usando a primeira derivada
-                left_val = p - 0.01
-                right_val = p + 0.01
-                left_slope = first_derivative.subs(x, left_val).evalf()
-                right_slope = first_derivative.subs(x, right_val).evalf()
-                
-                if left_slope > 0 and right_slope < 0:
-                    point_type = "Máximo"
-                elif left_slope < 0 and right_slope > 0:
-                    point_type = "Mínimo"
-                else:
-                    point_type = "Ponto de Sela"
-                
-                critical_points.append((p, y_p, point_type))
-            
-            for p in inflex_points:
-                y_p = func.subs(x, p).evalf()
-                inflection_points.append((p, y_p))
-            
-            # Determinar intervalos de crescimento e decrescimento
-            growth_intervals = []
-            decay_intervals = []
-            crit_points_sorted = sorted(crit_points)
-            
-            test_points = [interval_int[0]] + crit_points_sorted + [interval_int[1]]
-            
-            for i in range(len(test_points) - 1):
-                test_val = (test_points[i] + test_points[i + 1]) / 2
-                if first_derivative.subs(x, test_val) > 0:
-                    growth_intervals.append((test_points[i], test_points[i + 1]))
-                else:
-                    decay_intervals.append((test_points[i], test_points[i + 1]))
+            # Se o checkbox estiver marcado, mostra os pontos explicitamente
+            if show_points_var.get():
+                # --- Marcação dos Pontos Críticos com flags coloridas ---
+                for p in cp:
+                    y_p = float(func.subs(x, p).evalf())
+                    try:
+                        fsecond_val = float(fsecond.subs(x, p).evalf())
+                    except Exception:
+                        fsecond_val = None
                     
-            # Determinar intervalos de concavidade
-            concave_up_intervals = []
-            concave_down_intervals = []
-            inflex_points_sorted = sorted(inflex_points)
-            
-            test_points = [interval_int[0]] + inflex_points_sorted + [interval_int[1]]
-            
-            for i in range(len(test_points) - 1):
-                test_val = (test_points[i] + test_points[i + 1]) / 2
-                if second_derivative.subs(x, test_val) > 0:
-                    concave_up_intervals.append((test_points[i], test_points[i + 1]))
-                else:
-                    concave_down_intervals.append((test_points[i], test_points[i + 1]))
+                    if fsecond_val is not None:
+                        if fsecond_val < 0:
+                            point_type = "Máximo"
+                            color = "#e41a1c"  # vermelho vibrante
+                            marker = "^"       # seta para cima
+                            offset = (0.4, 0.4)
+                        elif fsecond_val > 0:
+                            point_type = "Mínimo"
+                            color = "#4daf4a"  # verde
+                            marker = "v"       # seta para baixo
+                            offset = (0.4, -0.4)
+                        else:
+                            point_type = "Sela"
+                            color = "#ff7f00"  # laranja
+                            marker = "D"       # diamante
+                            offset = (0.4, 0.4)
+                    else:
+                        point_type = "Crítico"
+                        color = "#984ea3"  # roxo
+                        marker = "o"
+                        offset = (0.4, 0.4)
                     
-            result_text += f"Função: {func}\n"
-            result_text += "Intervalos de Crescimento: " + ", ".join([f"({a}, {b})" for a, b in growth_intervals]) + "\n"
-            result_text += "Intervalos de Decrescimento: " + ", ".join([f"({a}, {b})" for a, b in decay_intervals]) + "\n"
-            result_text += "Intervalos de Concavidade para Cima: " + ", ".join([f"({a}, {b})" for a, b in concave_up_intervals]) + "\n"
-            result_text += "Intervalos de Concavidade para Baixo: " + ", ".join([f"({a}, {b})" for a, b in concave_down_intervals]) + "\n"
-            if vertical_asymptotes:
-                result_text += "Assíntotas Verticais em: " + ", ".join([f"x = {a}" for a in vertical_asymptotes]) + "\n"
-            if horizontal_asymptotes:
-                result_text += "Assíntotas Horizontais em: " + ", ".join([f"y = {a}" for a in horizontal_asymptotes]) + "\n"
-            result_text += f"\n"
-
-        if show_points_var.get():
-            for cp, y_cp, point_type in critical_points:
-                if point_type == "Mínimo":
-                    plt.plot(cp, y_cp, 'bo', label=f'{point_type} ({cp:.2f}, {y_cp:.2f})')
-                elif point_type == "Máximo":
-                    plt.plot(cp, y_cp, 'ro', label=f'{point_type} ({cp:.2f}, {y_cp:.2f})')
-                else:
-                    plt.plot(cp, y_cp, 'yo', label=f'{point_type} ({cp:.2f}, {y_cp:.2f})')
+                    ax.scatter(p, y_p, color=color, marker=marker, s=100, edgecolors='black', zorder=6)
+                    ax.annotate(
+                        f'{point_type}\n({p:.2f}, {y_p:.2f})',
+                        xy=(p, y_p),
+                        xytext=(p + offset[0], y_p + offset[1]),
+                        textcoords='data',
+                        fontsize=10,
+                        fontweight='bold',
+                        color='white',
+                        bbox=dict(boxstyle='round,pad=0.3', fc=color, ec='none'),
+                        arrowprops=dict(arrowstyle='-|>', color=color, lw=1.5),
+                        zorder=7
+                    )
+                    result_text += f'{point_type} em ({p:.2f}, {y_p:.2f})\n'
                 
-            for ip, y_ip in inflection_points:
-                plt.plot(ip, y_ip, 'go', label=f'Ponto de Inflexão ({ip:.2f}, {y_ip:.2f})')
-
-        plt.axhline(0, color='red', lw=0.8)  # Linha no eixo x
-        plt.axvline(0, color='red', lw=0.8)  # Linha no eixo y
-        plt.title('Gráfico das Funções')
-        plt.xlabel('x')
-        plt.ylabel('y')
-        plt.legend()
-        plt.grid(True)
+                # --- Marcação dos Pontos de Inflexão com flag quadrada azul ---
+                for p in ip:
+                    y_p = float(func.subs(x, p).evalf())
+                    ax.scatter(p, y_p, color="#377eb8", marker='s', s=100, edgecolors='black', zorder=6)
+                    ax.annotate(
+                        f'Inflexão\n({p:.2f}, {y_p:.2f})',
+                        xy=(p, y_p),
+                        xytext=(p + 0.4, y_p + 0.4),
+                        textcoords='data',
+                        fontsize=10,
+                        fontweight='bold',
+                        color='white',
+                        bbox=dict(boxstyle='round,pad=0.3', fc="#377eb8", ec='none'),
+                        arrowprops=dict(arrowstyle='-|>', color="#377eb8", lw=1.5),
+                        zorder=7
+                    )
+                    result_text += f'Inflexão em ({p:.2f}, {y_p:.2f})\n'
+            else:
+                result_text += "Pontos não explicitados (checkbox desativado).\n"
+            
+            result_text += "\n"
+        
+        # Configurações finais do gráfico
+        ax.axhline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
+        ax.axvline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
+        ax.set_xlabel('x', fontsize=14)
+        ax.set_ylabel('y', fontsize=14)
+        ax.set_title('Gráfico das Funções', fontsize=18, fontweight='bold')
+        ax.legend()
+        plt.tight_layout()
         plt.show()
         
-        resultado_text_grafico.delete(1.0, tk.END)
-        resultado_text_grafico.insert(tk.END, result_text + "Gráfico plotado com sucesso!")
+        # Atualiza a área de texto com os resultados
+        resultado_text_grafico.delete('1.0', tk.END)
+        resultado_text_grafico.insert(tk.END, result_text + "\nGráfico plotado com sucesso!")
+        
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n{e}")
 
 def calcular_dominio(func, x):
-    """Calcula o domínio analítico da função."""
+    """Calcula o domínio analítico da função de forma robusta."""
     try:
-        return sp.calculus.util.continuous_domain(func, x, sp.S.Reals)
+        # Tenta calcular o domínio contínuo na reta real
+        dominio = sp.calculus.util.continuous_domain(func, x, sp.S.Reals)
+        return dominio
     except Exception as e:
-        return f"Erro ao calcular o domínio: {e}"
+        # Fallback: amostra numérica para identificar onde a função está definida
+        try:
+            sample_points = np.linspace(-100, 100, 1000)
+            valid_points = []
+            for val in sample_points:
+                try:
+                    result = func.subs(x, val)
+                    # Verifica se o resultado é um número real e não contém infinitos ou indeterminados
+                    if result.is_real and not result.has(sp.oo, sp.zoo, sp.nan):
+                        valid_points.append(val)
+                except Exception:
+                    continue
+            if valid_points:
+                return sp.Interval(min(valid_points), max(valid_points))
+            else:
+                return "Domínio não determinado"
+        except Exception as e2:
+            return f"Erro ao calcular o domínio: {e} | {e2}"
 
 def calcular_imagem(func, x, dominio):
-    """Calcula a imagem de uma função."""
+    """Calcula a imagem (faixa de valores) da função de forma robusta."""
     try:
-        # Verifica se a função contém termos trigonométricos
         func_str = str(func)
-        if any(trig in func_str for trig in ['sin', 'cos']):
+        # Tratamentos especiais para funções trigonométricas comuns
+        if func_str.strip() in ['sin(x)', 'cos(x)']:
             return "[-1, 1]"
-        elif 'tan' in func_str or 'cot' in func_str:
+        if any(trig in func_str for trig in ['tan', 'cot']):
             return "Todos os reais (exceto singularidades)"
-        elif 'sec' in func_str or 'csc' in func_str:
+        if any(trig in func_str for trig in ['sec', 'csc']):
             return "(-∞, -1] ∪ [1, ∞)"
-
-        # Lista para armazenar valores de y
+        
         y_values = []
 
-        # Pontos críticos (derivada igual a zero)
-        critical_points = sp.solve(sp.diff(func, x), x)
-        for cp in critical_points:
-            if cp.is_real:
-                y_values.append(func.subs(x, cp))
-
-        # Limites nos extremos do domínio
+        # 1. Pontos críticos: onde a derivada é zero
         try:
-            limit_pos_inf = sp.limit(func, x, sp.oo)
-            if limit_pos_inf.is_real:
-                y_values.append(limit_pos_inf)
-        except:
+            deriv = sp.diff(func, x)
+            critical_points = sp.solve(deriv, x)
+            for cp in critical_points:
+                try:
+                    cp_val = float(cp.evalf())
+                    # Se o domínio for um intervalo, verifica se o ponto está contido nele
+                    if isinstance(dominio, sp.Interval):
+                        if dominio.contains(cp_val):
+                            y_val = func.subs(x, cp)
+                            y_values.append(y_val)
+                    else:
+                        y_values.append(func.subs(x, cp))
+                except Exception:
+                    continue
+        except Exception:
             pass
 
+        # 2. Limites nos extremos do domínio (sejam finitos ou infinitos)
         try:
-            limit_neg_inf = sp.limit(func, x, -sp.oo)
-            if limit_neg_inf.is_real:
-                y_values.append(limit_neg_inf)
-        except:
+            limit_pos = sp.limit(func, x, sp.oo)
+            if limit_pos.is_real and not limit_pos.has(sp.oo, sp.zoo, sp.nan):
+                y_values.append(limit_pos)
+        except Exception:
+            pass
+        try:
+            limit_neg = sp.limit(func, x, -sp.oo)
+            if limit_neg.is_real and not limit_neg.has(sp.oo, sp.zoo, sp.nan):
+                y_values.append(limit_neg)
+        except Exception:
             pass
 
-        # Cálculo numérico para validação adicional
-        dominio_numerico = np.linspace(-100, 100, 1000)
-        for val in dominio_numerico:
+        # 3. Amostragem numérica dentro do domínio para captar variações
+        try:
+            if isinstance(dominio, sp.Interval):
+                a = float(dominio.start) if dominio.start != -sp.oo else -100
+                b = float(dominio.end) if dominio.end != sp.oo else 100
+            else:
+                a, b = -100, 100
+            sample_points = np.linspace(a, b, 1000)
+            for val in sample_points:
+                try:
+                    y_val = func.subs(x, sp.Float(val))
+                    if y_val.is_real and not y_val.has(sp.oo, sp.zoo, sp.nan):
+                        y_values.append(float(y_val))
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        # Remove duplicatas (comparando valores numéricos)
+        y_values_clean = []
+        for y in y_values:
             try:
-                y = func.subs(x, sp.Float(val))
-                if y.is_real and not y.has(sp.oo):  # Ignorar valores infinitos
-                    y_values.append(float(y))
-            except:
-                continue
-
-        # Remove duplicatas e valores inválidos
-        y_values = list(set(y_values))
-
-        # Obtém valores mínimo e máximo
-        if y_values:
-            min_value = min(y_values)
-            max_value = max(y_values)
-            return f"[{min_value:.4f}, {max_value:.4f}]"
+                y_num = float(y)
+                if not any(abs(y_num - float(existing)) < 1e-5 for existing in y_values_clean):
+                    y_values_clean.append(y_num)
+            except Exception:
+                # Caso não seja conversível para float, adiciona de qualquer forma
+                y_values_clean.append(y)
+        
+        if y_values_clean:
+            min_val = min(y_values_clean)
+            max_val = max(y_values_clean)
+            return f"[{min_val:.4f}, {max_val:.4f}]"
         else:
-            return "Imagem indefinida (valores não reais ou não computáveis)"
+            return "Imagem indefinida (não foram encontrados valores válidos)"
     except Exception as e:
         return f"Erro ao calcular a imagem: {e}"
 
@@ -335,26 +435,29 @@ def calculo_dominio_imagem():
     try:
         func_str = entradadom.get()
         x = sp.symbols('x')
-        func = sp.sympify(func_str)
-
-        # Calcula domínio e imagem
+        try:
+            func = sp.sympify(func_str)
+        except Exception as e:
+            resultado_text_dom.delete(1.0, tk.END)
+            resultado_text_dom.insert(tk.END, f"Erro ao interpretar a função: {e}")
+            return
+        
+        # Calcula o domínio usando o método analítico com fallback
         dominio = calcular_dominio(func, x)
-
-        # Tratamento especial para domínio em erro
+        # Se houver erro na determinação do domínio, define imagem de forma apropriada
         if isinstance(dominio, str) and "Erro" in dominio:
-            imagem = "Não foi possível calcular devido ao domínio inválido."
+            imagem = "Não foi possível calcular a imagem devido ao domínio inválido."
         else:
             imagem = calcular_imagem(func, x, dominio)
-
-        # Formata a saída
+        
+        # Formata a saída para a interface
         resultado = f"""Resultados:
-        ========================
-        Função: {func_str}
-        Domínio: {dominio}
-        Imagem: {imagem}
-        ========================"""
-
-        resultado_text_dom.delete(1.0, tk.END)
+========================
+Função: {func_str}
+Domínio: {dominio}
+Imagem: {imagem}
+========================"""
+        resultado_text_dom.delete('1.0', tk.END)
         resultado_text_dom.insert(tk.END, resultado)
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular domínio e imagem: {e}")
@@ -533,6 +636,9 @@ botao(aba_dominio, return_to_menu,'Voltar para o menu')
 resultado_text_dom = tk.Text(aba_dominio, height=12, width=52, font = font)
 resultado_text_dom.pack(padx=10 , pady=10)
 resultado_text_dom.tag_configure("margin", lmargin1=10, lmargin2=10, rmargin=10)
+
+resultado_text_dom.insert(tk.END,
+                           f"\n\n O domínio de uma função é o conjunto de valores de entrada em que ela está definida, enquanto a imagem é o conjunto de saídas resultantes da aplicação da função. Por exemplo, em f(x) = 1/(x – 2), x = 2 é excluído do domínio para evitar divisão por zero, e em f(x) = x², a imagem são os números reais não negativos. Esses conceitos são essenciais para garantir a validade das operações e construir modelos matemáticos.\n\nfonte: https://mathworld.wolfram.com/ e http://www.sbem.com.br/revista/index.php/emr/index")
 
 
 # Aba Raiz 
