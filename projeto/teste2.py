@@ -1,24 +1,21 @@
-import ttkbootstrap as ttk
-from ttkbootstrap.constants import *
-import tkinter as tk
-from tkinter import messagebox
+import customtkinter as ctk
+import tkinter.messagebox as messagebox
+import webbrowser
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-import webbrowser
-import matplotlib
-matplotlib.use('TkAgg')
+import re
 
-# -------------------- FUNÇÕES FORNECIDAS (NÃO ALTERAR) --------------------
-font = ('Arial', 13)
+# Configuração do tema (dark, light ou system)
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
-def inputstr(pai):
-    entry = tk.Entry(pai, width=40, bd=1, relief=tk.SOLID, font=font)
-    entry.pack(pady=10)
-    return entry
+# Fonte padrão para os widgets
+font = ("Arial", 14)
 
-def botao(pai, func, texto):
-    tk.Button(pai, text=texto, command=func, pady=3, padx=4, bd=1, relief=tk.SOLID, width=25, font=font).pack()
+# =============================================================================
+#   FUNÇÕES EXISTENTES (sem alterações, usando variáveis globais)
+# =============================================================================
 
 def calculo_derivada():
     global resultado_text_deriv, entradaderiv, entradaponto
@@ -28,16 +25,16 @@ def calculo_derivada():
         func = sp.sympify(func_str)
         derivada = sp.diff(func, x)
         
-        resultado_text_deriv.delete(1.0, tk.END)
-        resultado_text_deriv.insert(tk.END, f"A derivada da função é: {derivada}\n")
+        resultado_text_deriv.delete("1.0", ctk.END)
+        resultado_text_deriv.insert(ctk.END, f"A derivada da função é: {derivada}\n")
         
         # Verifica se o ponto foi inserido
         point_str = entradaponto.get()
         if point_str:
-            point = float(point_str)
+            point = float(sp.sympify(point_str))
             coef_angular = derivada.subs(x, point)
             reta = func.subs(x, point) + coef_angular * (x - point)
-            resultado_text_deriv.insert(tk.END, f"A equação da reta tangente é: {reta}\n\n")
+            resultado_text_deriv.insert(ctk.END, f"A equação da reta tangente é: {reta}\n\n")
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao calcular a derivada. Verifique sua entrada.")
 
@@ -47,26 +44,26 @@ def calculo_limite():
         func_str = entradalimit.get()
         func = sp.sympify(func_str)
         variavel = sp.symbols(entradavar.get())
-        valor_tendencia = float(entradatend.get())
+        valor_tendencia = float(sp.sympify(entradatend.get()))
         direcao = direcao_var.get()  # Obtém a direção selecionada
 
         if direcao == "Ambos":
             limite_esquerda = sp.limit(func, variavel, valor_tendencia, dir='-')
             limite_direita = sp.limit(func, variavel, valor_tendencia, dir='+')
             
-            resultado_text_limite.delete(1.0, tk.END)
+            resultado_text_limite.delete("1.0", ctk.END)
             if limite_esquerda == limite_direita:
-                resultado_text_limite.insert(tk.END, f"O limite da função é: {limite_esquerda}")
+                resultado_text_limite.insert(ctk.END, f"O limite da função é: {limite_esquerda}")
             else:
-                resultado_text_limite.insert(tk.END, f"O limite da função não existe.")
+                resultado_text_limite.insert(ctk.END, f"O limite da função não existe.")
         else:
             if direcao == "Esquerda":
                 limite = sp.limit(func, variavel, valor_tendencia, dir='-')
             elif direcao == "Direita":
                 limite = sp.limit(func, variavel, valor_tendencia, dir='+')
             
-            resultado_text_limite.delete(1.0, tk.END)
-            resultado_text_limite.insert(tk.END, f"O limite da função pela {direcao.lower()} é: {limite}")
+            resultado_text_limite.delete("1.0", ctk.END)
+            resultado_text_limite.insert(ctk.END, f"O limite da função pela {direcao.lower()} é: {limite}")
 
     except Exception as e:
         messagebox.showerror("Erro", "Ocorreu um erro ao calcular o limite. Verifique sua entrada.")
@@ -76,7 +73,7 @@ def raiz():
     try:
         numero = float(entradaraiz.get())
         indice_input = entradaindice.get()  # Capturando a entrada do índice
-        if not indice_input:                # Verificando se o campo de entrada está vazio
+        if not indice_input:
             raise ValueError("Índice não fornecido")
         indice = int(indice_input)
         
@@ -92,17 +89,12 @@ def raiz():
         else: 
             raiz_value = pow(numero, 1/indice)
         
-        resultado_text_raiz.delete(1.0, tk.END)
-        resultado_text_raiz.insert(tk.END, f"A raíz {indice}-ésima de {numero} é: {raiz_value:.4}")
+        resultado_text_raiz.delete("1.0", ctk.END)
+        resultado_text_raiz.insert(ctk.END, f"A raíz {indice}-ésima de {numero} é: {raiz_value:.4}")
     except ValueError:
         messagebox.showerror("Erro", "Por favor, forneça um índice e/ou número válido para calcular a raiz.")
 
 def numerical_roots(sym_expr, var, lower, upper, num_points=500):
-    """
-    Procura raízes de sym_expr no intervalo [lower, upper] usando
-    uma busca por mudança de sinal e sp.nsolve.
-    Retorna uma lista de raízes numéricas.
-    """
     func_num = sp.lambdify(var, sym_expr, 'numpy')
     sample_points = np.linspace(lower, upper, num_points)
     roots = []
@@ -111,11 +103,9 @@ def numerical_roots(sym_expr, var, lower, upper, num_points=500):
         b = sample_points[i + 1]
         fa = func_num(a)
         fb = func_num(b)
-        # Se o valor for exatamente zero, adiciona a raiz
         if fa == 0:
             if lower <= a <= upper and not any(abs(a - r) < 1e-5 for r in roots):
                 roots.append(a)
-        # Se houver mudança de sinal, tenta encontrar a raiz
         elif fa * fb < 0:
             try:
                 r = sp.nsolve(sym_expr, a)
@@ -152,6 +142,35 @@ def plot_grafico():
         for func, func_numeric in zip(func_list, func_numeric_list):
             y_vals = func_numeric(x_vals)
             ax.plot(x_vals, y_vals, label=f'${sp.latex(func)}$', linewidth=2.5)
+            
+            # --- NOVO: Cálculo de Assíntotas ---
+            # Assíntotas verticais
+            try:
+                vertical_asymptotes = sp.singularities(func, x)
+                vertical_asymptotes = [asy for asy in vertical_asymptotes if asy.is_real]
+                for asy in vertical_asymptotes:
+                    asy_val = float(asy.evalf())
+                    if lower < asy_val < upper:
+                        ax.axvline(asy_val, color='magenta', linestyle='--', linewidth=1.5, label=f'Assíntota x={asy_val:.2f}')
+                        result_text += f'Assíntota vertical em x = {asy_val:.2f}\n'
+            except Exception:
+                pass
+            
+            # Assíntotas horizontais
+            try:
+                lim_neg = sp.limit(func, x, -sp.oo)
+                lim_pos = sp.limit(func, x, sp.oo)
+                if lim_neg.is_real and not sp.oo == lim_neg:
+                    lim_neg_val = float(lim_neg.evalf())
+                    ax.axhline(lim_neg_val, color='cyan', linestyle='--', linewidth=1.5, label=f'Assíntota y={lim_neg_val:.2f}')
+                    result_text += f'Assíntota horizontal em y = {lim_neg_val:.2f} (limite em -∞)\n'
+                if lim_pos.is_real and not sp.oo == lim_pos:
+                    lim_pos_val = float(lim_pos.evalf())
+                    ax.axhline(lim_pos_val, color='cyan', linestyle='--', linewidth=1.5, label=f'Assíntota y={lim_pos_val:.2f}')
+                    result_text += f'Assíntota horizontal em y = {lim_pos_val:.2f} (limite em +∞)\n'
+            except Exception:
+                pass
+            # --- Fim das Assíntotas ---
             
             fprime = sp.diff(func, x)
             fsecond = sp.diff(fprime, x)
@@ -258,6 +277,24 @@ def plot_grafico():
             else:
                 result_text += "Pontos não explicitados (checkbox desativado).\n"
             
+            # --- NOVO: Intervalos de Crescimento e Decrescimento ---
+            growth_points = [lower] + cp + [upper]
+            growth_points = sorted(growth_points)
+            for i in range(len(growth_points) - 1):
+                mid = (growth_points[i] + growth_points[i+1]) / 2
+                try:
+                    derivative_mid = float(fprime.subs(x, mid).evalf())
+                except Exception:
+                    derivative_mid = None
+                if derivative_mid is not None:
+                    if derivative_mid > 0:
+                        result_text += f'Função crescente em ({growth_points[i]:.2f}, {growth_points[i+1]:.2f})\n'
+                    elif derivative_mid < 0:
+                        result_text += f'Função decrescente em ({growth_points[i]:.2f}, {growth_points[i+1]:.2f})\n'
+                    else:
+                        result_text += f'Função constante em ({growth_points[i]:.2f}, {growth_points[i+1]:.2f})\n'
+            # --- Fim dos intervalos ---
+            
             result_text += "\n"
         
         ax.axhline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
@@ -269,14 +306,12 @@ def plot_grafico():
         plt.tight_layout()
         plt.show()
         
-        resultado_text_grafico.delete('1.0', tk.END)
-        resultado_text_grafico.insert(tk.END, result_text + "\nGráfico plotado com sucesso!")
+        resultado_text_grafico.delete("1.0", ctk.END)
+        resultado_text_grafico.insert(ctk.END, result_text + "\nGráfico plotado com sucesso!")
         
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n{e}")
-
 def calcular_dominio(func, x):
-    """Calcula o domínio analítico da função de forma robusta."""
     try:
         dominio = sp.calculus.util.continuous_domain(func, x, sp.S.Reals)
         return dominio
@@ -299,7 +334,6 @@ def calcular_dominio(func, x):
             return f"Erro ao calcular o domínio: {e} | {e2}"
 
 def calcular_imagem(func, x, dominio):
-    """Calcula a imagem (faixa de valores) da função de forma robusta."""
     try:
         func_str = str(func)
         if func_str.strip() in ['sin(x)', 'cos(x)']:
@@ -310,7 +344,6 @@ def calcular_imagem(func, x, dominio):
             return "(-∞, -1] ∪ [1, ∞)"
         
         y_values = []
-
         try:
             deriv = sp.diff(func, x)
             critical_points = sp.solve(deriv, x)
@@ -384,8 +417,8 @@ def calculo_dominio_imagem():
         try:
             func = sp.sympify(func_str)
         except Exception as e:
-            resultado_text_dom.delete(1.0, tk.END)
-            resultado_text_dom.insert(tk.END, f"Erro ao interpretar a função: {e}")
+            resultado_text_dom.delete("1.0", ctk.END)
+            resultado_text_dom.insert(ctk.END, f"Erro ao interpretar a função: {e}")
             return
         
         dominio = calcular_dominio(func, x)
@@ -400,8 +433,8 @@ Função: {func_str}
 Domínio: {dominio}
 Imagem: {imagem}
 ========================"""
-        resultado_text_dom.delete('1.0', tk.END)
-        resultado_text_dom.insert(tk.END, resultado)
+        resultado_text_dom.delete("1.0", ctk.END)
+        resultado_text_dom.insert(ctk.END, resultado)
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular domínio e imagem: {e}")
 
@@ -412,19 +445,19 @@ def calculo_integral():
         x = sp.symbols('x')
         func = sp.sympify(func_str)
         
-        limite_inf = entrada_limite_inf.get().strip()
-        limite_sup = entrada_limite_sup.get().strip()
+        limite_inf_str = entrada_limite_inf.get().strip()
+        limite_sup_str = entrada_limite_sup.get().strip()
 
-        if limite_inf and limite_sup:
-            limite_inf = float(limite_inf)
-            limite_sup = float(limite_sup)
+        if limite_inf_str and limite_sup_str:
+            limite_inf = float(sp.sympify(limite_inf_str))
+            limite_sup = float(sp.sympify(limite_sup_str))
             integral_def = sp.integrate(func, (x, limite_inf, limite_sup))
-            resultado_text_integral.delete(1.0, tk.END)
-            resultado_text_integral.insert(tk.END, f"A integral definida da função de {limite_inf} a {limite_sup} é: {integral_def}\n")
+            resultado_text_integral.delete("1.0", ctk.END)
+            resultado_text_integral.insert(ctk.END, f"A integral definida da função de {limite_inf} a {limite_sup} é: {integral_def}\n")
         else:
             integral = sp.integrate(func, x)
-            resultado_text_integral.delete(1.0, tk.END)
-            resultado_text_integral.insert(tk.END, f"A integral indefinida da função é: {integral} + C\n")
+            resultado_text_integral.delete("1.0", ctk.END)
+            resultado_text_integral.insert(ctk.END, f"A integral indefinida da função é: {integral} + C\n")
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral: {e}")
 
@@ -433,7 +466,7 @@ def plot_func_tangente():
         x = sp.Symbol('x')
         func_str = entradaderiv.get()
         func = sp.sympify(func_str)
-        point = float(entradaponto.get())
+        point = float(sp.sympify(entradaponto.get()))
         derivada = sp.diff(func, x)
         coef_angular = derivada.subs(x, point)
         reta = func.subs(x, point) + coef_angular * (x - point)
@@ -463,8 +496,8 @@ def exemplo_raiz():
         "Cálculo: A raiz quadrada de 256 é 16, pois 16 * 16 = 256.\n"
         "Propriedades: A raiz quadrada de um número positivo é sempre um número positivo. "
         "Neste caso, a raiz quadrada de 256 é um valor exato e inteiro, 16.")
-    resultado_text_raiz.delete(1.0, tk.END)
-    resultado_text_raiz.insert(tk.END, example_text)
+    resultado_text_raiz.delete("1.0", ctk.END)
+    resultado_text_raiz.insert(ctk.END, example_text)
 
 def exemplo_dominio_imagem():
     example_text = (
@@ -475,8 +508,8 @@ def exemplo_dominio_imagem():
         "Imagem: Todos os valores reais, exceto f(x)=0. A função nunca toca o eixo x, "
         "pois não há valor de x que faça a função igual a zero."
     )
-    resultado_text_dom.delete(1.0, tk.END)
-    resultado_text_dom.insert(tk.END, example_text)
+    resultado_text_dom.delete("1.0", ctk.END)
+    resultado_text_dom.insert(ctk.END, example_text)
 
 def exemplo_limite():
     example_text = (
@@ -487,8 +520,8 @@ def exemplo_limite():
         "Então, o limite de f(x) quando x tende a 1 é 2.\n"
         "Lembre-se de que o limite se refere ao valor que a função se aproxima à medida que x se aproxima de 1."
     )
-    resultado_text_limite.delete(1.0, tk.END)
-    resultado_text_limite.insert(tk.END, example_text)
+    resultado_text_limite.delete("1.0", ctk.END)
+    resultado_text_limite.insert(ctk.END, example_text)
 
 def exemplo_derivada():
     example_text = (
@@ -499,8 +532,8 @@ def exemplo_derivada():
         "A equação da reta tangente é dada por: y = f(3) + f'(3)*(x - 3)\n"
         "Neste caso, a reta tangente é y = 9 + 6(x - 3), simplificando: y = 6x - 9."
     )
-    resultado_text_deriv.delete(1.0, tk.END)
-    resultado_text_deriv.insert(tk.END, example_text)
+    resultado_text_deriv.delete("1.0", ctk.END)
+    resultado_text_deriv.insert(ctk.END, example_text)
 
 def exemplo_integral():
     example_text = (
@@ -510,98 +543,159 @@ def exemplo_integral():
         "Integral Definida de 0 a 2: ∫(de 0 a 2) x^2 dx = [(1/3)x^3] de 0 a 2 = (8/3) - 0 = 8/3.\n"
         "Isso representa a área sob a curva de f(x) entre x=0 e x=2."
     )
-    resultado_text_integral.delete(1.0, tk.END)
-    resultado_text_integral.insert(tk.END, example_text)
+    resultado_text_integral.delete("1.0", ctk.END)
+    resultado_text_integral.insert(ctk.END, example_text)
 
-# -------------------- INTERFACE GRÁFICA MODERNA COM ttkbootstrap --------------------
-class App(ttk.Window):
+# =============================================================================
+#   NOVAS FUNÇÕES DE INTERFACE COM CUSTOMTKINTER
+# =============================================================================
+
+# Classe que sobrescreve o método get() para realizar substituições usando regex.
+class ModernEntry(ctk.CTkEntry):
+    def get(self):
+        text = super().get()
+        # Se houver um dígito imediatamente seguido de "pi" ou "e", insere o sinal de multiplicação.
+        text = re.sub(r'(?<=\d)(?=pi\b)', '*', text, flags=re.IGNORECASE)
+        text = re.sub(r'(?<=\d)(?=e\b)', '*', text, flags=re.IGNORECASE)
+        # Substitui ocorrências isoladas (ou após o *) de "pi" e "e" por "pi" e "E"
+        # (Sympy já reconhece "pi" e "E" como as constantes π e e)
+        text = re.sub(r'\bpi\b', 'pi', text, flags=re.IGNORECASE)
+        text = re.sub(r'\be\b', 'E', text, flags=re.IGNORECASE)
+        return text
+
+# Cria um rótulo e uma entrada logo abaixo
+def labeled_input(parent, label_text):
+    label = ctk.CTkLabel(parent, text=label_text, font=font)
+    label.pack(padx=10, pady=(10, 0), anchor="w")
+    entry = ModernEntry(parent, width=400, height=30, corner_radius=5, font=font)
+    entry.pack(padx=10, pady=(0,10))
+    return entry
+
+def botao(pai, func, texto):
+    btn = ctk.CTkButton(pai, text=texto, command=func, width=200, corner_radius=5, font=font)
+    btn.pack(pady=10, padx=10)
+
+# =============================================================================
+#   CLASSE PRINCIPAL DA APLICAÇÃO
+# =============================================================================
+
+class InitialPage(ctk.CTk):
     def __init__(self):
-        super().__init__(themename="litera")
+        super().__init__()
+        self.title("Página Inicial")
+        self.geometry("400x200")
+        self.configure(padx=20, pady=20)
+
+        # Botão para abrir a calculadora
+        open_calculator_btn = ctk.CTkButton(self, text="Abrir Calculadora DDX", command=self.open_calculator)
+        open_calculator_btn.pack(pady=20)
+
+        # Botão para abrir o manual
+        manual_btn = ctk.CTkButton(self, text="Abrir Manual do DDX", 
+                                    command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'))
+        manual_btn.pack(pady=20)
+
+    def open_calculator(self):
+        self.destroy()  # Fecha a página inicial
+        app = App()  # Inicia a aplicação principal
+        app.mainloop()
+
+
+class App(ctk.CTk):
+    def __init__(self):
+        super().__init__()
         self.title("Calculadora DDX")
-        self.geometry("950x900")
+        self.geometry("1200x900")
+        self.configure(padx=20, pady=20)
         self.create_widgets()
-        
+
     def create_widgets(self):
-        notebook = ttk.Notebook(self)
-        notebook.pack(expand=True, fill=BOTH, padx=10, pady=10)
-        
-        # Aba: Domínio e Imagem
-        frame_dom = ttk.Frame(notebook)
-        notebook.add(frame_dom, text="Domínio e Imagem")
+        # Cria uma Tabview para organizar as funcionalidades
+        tabview = ctk.CTkTabview(self, width=1100, height=700)
+        tabview.pack(padx=20, pady=20, fill="both", expand=True)
+        tabview.add("Domínio e Imagem")
+        tabview.add("Derivadas")
+        tabview.add("Limites")
+        tabview.add("Raiz")
+        tabview.add("Gráficos")
+        tabview.add("Integrais")
+
+        # --------------------- Aba: Domínio e Imagem ---------------------
+        frame_dom = tabview.tab("Domínio e Imagem")
         global entradadom, resultado_text_dom
-        entradadom = inputstr(frame_dom)
+        entradadom = labeled_input(frame_dom, "Expressão:")
         botao(frame_dom, calculo_dominio_imagem, "Calcular")
         botao(frame_dom, exemplo_dominio_imagem, "Exemplo")
-        resultado_text_dom = tk.Text(frame_dom, height=12, width=70, font=font)
+        resultado_text_dom = ctk.CTkTextbox(frame_dom, height=200, width=600, font=font)
         resultado_text_dom.pack(padx=10, pady=10)
-        
-        # Aba: Derivadas
-        frame_deriv = ttk.Frame(notebook)
-        notebook.add(frame_deriv, text="Derivadas")
+
+        # --------------------- Aba: Derivadas ---------------------
+        frame_deriv = tabview.tab("Derivadas")
         global entradaderiv, entradaponto, resultado_text_deriv
-        entradaderiv = inputstr(frame_deriv)
-        entradaponto = inputstr(frame_deriv)
+        entradaderiv = labeled_input(frame_deriv, "Função:")
+        entradaponto = labeled_input(frame_deriv, "Ponto:")
         botao(frame_deriv, calculo_derivada, "Calcular")
         botao(frame_deriv, exemplo_derivada, "Exemplo")
         botao(frame_deriv, plot_func_tangente, "Plotar Tangente")
-        resultado_text_deriv = tk.Text(frame_deriv, height=12, width=70, font=font)
+        resultado_text_deriv = ctk.CTkTextbox(frame_deriv, height=200, width=600, font=font)
         resultado_text_deriv.pack(padx=10, pady=10)
-        
-        # Aba: Limites
-        frame_lim = ttk.Frame(notebook)
-        notebook.add(frame_lim, text="Limites")
+
+        # --------------------- Aba: Limites ---------------------
+        frame_lim = tabview.tab("Limites")
         global entradalimit, entradavar, entradatend, direcao_var, resultado_text_limite
-        entradalimit = inputstr(frame_lim)
-        entradavar = inputstr(frame_lim)
-        entradatend = inputstr(frame_lim)
-        direcao_var = tk.StringVar(value="Ambos")
-        direcao_menu = ttk.OptionMenu(frame_lim, direcao_var, "Ambos", "Esquerda", "Direita", "Ambos")
-        direcao_menu.pack(pady=10)
+        entradalimit = labeled_input(frame_lim, "Função:")
+        entradavar = labeled_input(frame_lim, "Variável:")
+        entradatend = labeled_input(frame_lim, "Tendendo a:")
+        direcao_var = ctk.StringVar(value="Ambos")
+        option_menu = ctk.CTkOptionMenu(frame_lim, variable=direcao_var, values=["Esquerda", "Direita", "Ambos"])
+        option_menu.pack(pady=10)
         botao(frame_lim, calculo_limite, "Calcular")
         botao(frame_lim, exemplo_limite, "Exemplo")
-        resultado_text_limite = tk.Text(frame_lim, height=12, width=70, font=font)
+        resultado_text_limite = ctk.CTkTextbox(frame_lim, height=200, width=600, font=font)
         resultado_text_limite.pack(padx=10, pady=10)
-        
-        # Aba: Raiz
-        frame_raiz = ttk.Frame(notebook)
-        notebook.add(frame_raiz, text="Raiz")
+
+        # --------------------- Aba: Raiz ---------------------
+        frame_raiz = tabview.tab("Raiz")
         global entradaraiz, entradaindice, resultado_text_raiz
-        entradaraiz = inputstr(frame_raiz)
-        entradaindice = inputstr(frame_raiz)
+        entradaraiz = labeled_input(frame_raiz, "Número:")
+        entradaindice = labeled_input(frame_raiz, "Índice:")
         botao(frame_raiz, raiz, "Calcular")
         botao(frame_raiz, exemplo_raiz, "Exemplo")
-        resultado_text_raiz = tk.Text(frame_raiz, height=12, width=70, font=font)
+        resultado_text_raiz = ctk.CTkTextbox(frame_raiz, height=200, width=600, font=font)
         resultado_text_raiz.pack(padx=10, pady=10)
-        
-        # Aba: Gráficos
-        frame_graf = ttk.Frame(notebook)
-        notebook.add(frame_graf, text="Gráficos")
+
+        # --------------------- Aba: Gráficos ---------------------
+        frame_graf = tabview.tab("Gráficos")
         global entrada_grafico, intervalo, show_points_var, resultado_text_grafico
-        entrada_grafico = inputstr(frame_graf)
-        intervalo = inputstr(frame_graf)
-        show_points_var = tk.IntVar()
-        chk = ttk.Checkbutton(frame_graf, text="Mostrar pontos críticos e de inflexão", variable=show_points_var)
+        entrada_grafico = labeled_input(frame_graf, "Função:")
+        intervalo = labeled_input(frame_graf, "Intervalo (ex: -10,10):")
+        show_points_var = ctk.BooleanVar(value=False)
+        chk = ctk.CTkCheckBox(frame_graf, text="Mostrar pontos críticos e de inflexão", variable=show_points_var)
         chk.pack(pady=10)
-        botao(frame_graf, plot_grafico, "Calcular")
-        resultado_text_grafico = tk.Text(frame_graf, height=12, width=70, font=font)
+        botao(frame_graf, plot_grafico, "Plotar")
+        resultado_text_grafico = ctk.CTkTextbox(frame_graf, height=200, width=600, font=font)
         resultado_text_grafico.pack(padx=10, pady=10)
-        
-        # Aba: Integrais
-        frame_int = ttk.Frame(notebook)
-        notebook.add(frame_int, text="Integrais")
+
+        # --------------------- Aba: Integrais ---------------------
+        frame_int = tabview.tab("Integrais")
         global entrada_integrais, entrada_limite_inf, entrada_limite_sup, resultado_text_integral
-        entrada_integrais = inputstr(frame_int)
-        entrada_limite_inf = inputstr(frame_int)
-        entrada_limite_sup = inputstr(frame_int)
+        entrada_integrais = labeled_input(frame_int, "Função:")
+        entrada_limite_inf = labeled_input(frame_int, "Limite inferior:")
+        entrada_limite_sup = labeled_input(frame_int, "Limite superior:")
         botao(frame_int, calculo_integral, "Calcular")
         botao(frame_int, exemplo_integral, "Exemplo")
-        resultado_text_integral = tk.Text(frame_int, height=12, width=70, font=font)
+        resultado_text_integral = ctk.CTkTextbox(frame_int, height=200, width=600, font=font)
         resultado_text_integral.pack(padx=10, pady=10)
-        
-        # Botão de Manual
-        manual_btn = ttk.Button(self, text="Manual do DDX", command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'))
+
+        # --------------------- Botão Manual ---------------------
+        manual_btn = ctk.CTkButton(self, text="Manual do DDX", 
+                                   command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'))
         manual_btn.pack(pady=10)
 
+# =============================================================================
+#   EXECUÇÃO DA APLICAÇÃO
+# =============================================================================
+
 if __name__ == "__main__":
-    app = App()
-    app.mainloop()
+    initial_page = InitialPage()
+    initial_page.mainloop()
