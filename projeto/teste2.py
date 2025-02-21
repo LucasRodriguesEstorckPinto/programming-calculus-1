@@ -13,9 +13,7 @@ ctk.set_default_color_theme("blue")
 # Fonte padrão para os widgets
 font = ("Arial", 14)
 
-# =============================================================================
-#   FUNÇÕES EXISTENTES (sem alterações, usando variáveis globais)
-# =============================================================================
+
 
 def calculo_derivada():
     global resultado_text_deriv, entradaderiv, entradaponto
@@ -619,6 +617,7 @@ class App(ctk.CTk):
         tabview.add("Raiz")
         tabview.add("Gráficos")
         tabview.add("Integrais")
+        tabview.add("Manual")
 
         # --------------------- Aba: Domínio e Imagem ---------------------
         frame_dom = tabview.tab("Domínio e Imagem")
@@ -687,11 +686,12 @@ class App(ctk.CTk):
         resultado_text_integral = ctk.CTkTextbox(frame_int, height=200, width=600, font=font)
         resultado_text_integral.pack(padx=10, pady=10)
 
-        # --------------------- Botão Manual ---------------------
-        manual_btn = ctk.CTkButton(self, text="Manual do DDX", 
+        # --------------------- Aba: Manual ---------------------
+        frame_man = tabview.tab("Manual"
+                                )
+        manual_btn = ctk.CTkButton(frame_man, text="Manual do DDX", 
                                    command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'))
         manual_btn.pack(pady=10)
-
 # =============================================================================
 #   EXECUÇÃO DA APLICAÇÃO
 # =============================================================================

@@ -5,6 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import webbrowser
 import matplotlib
+import customtkinter as ctk
+import re
 
 matplotlib.use('TkAgg')
 
@@ -50,6 +52,27 @@ def inputstr(pai):
 
 def botao(pai, func, texto):
     tk.Button(pai, text=texto, command=func, pady=3, padx=4, bd=1, relief=tk.SOLID, width=25 , font=font).pack()
+
+class ModernEntry(ctk.CTkEntry):
+    def get(self):
+        text = super().get()
+        # Se houver um dígito imediatamente seguido de "pi" ou "e", insere o sinal de multiplicação.
+        text = re.sub(r'(?<=\d)(?=pi\b)', '*', text, flags=re.IGNORECASE)
+        text = re.sub(r'(?<=\d)(?=e\b)', '*', text, flags=re.IGNORECASE)
+        # Substitui ocorrências isoladas (ou após o *) de "pi" e "e" por "pi" e "E"
+        # (Sympy já reconhece "pi" e "E" como as constantes π e e)
+        text = re.sub(r'\bpi\b', 'pi', text, flags=re.IGNORECASE)
+        text = re.sub(r'\be\b', 'E', text, flags=re.IGNORECASE)
+        return text
+
+# Cria um rótulo e uma entrada logo abaixo
+def labeled_input(parent, label_text):
+    label = ctk.CTkLabel(parent, text=label_text, font=font)
+    label.pack(padx=10, pady=(10, 0), anchor="w")
+    entry = ModernEntry(parent, width=400, height=30, corner_radius=5, font=font)
+    entry.pack(padx=10, pady=(0,10))
+    return entry
+
 
 def calculo_derivada():
     global resultado_text_deriv
@@ -629,7 +652,7 @@ aba_integrais = tk.Frame(app)
 # Aba Domínio e Imagem de Funções
 lb1 = tk.Label(aba_dominio, text='Insira abaixo a função:', font=("Helvetica", 12))
 lb1.pack()
-entradadom = inputstr(aba_dominio)
+entradadom = labeled_input(aba_dominio, "Expressão:")
 botao(aba_dominio, calculo_dominio_imagem, 'Calcular')
 botao(aba_dominio, exemplo_dominio_imagem, "Exemplo")
 botao(aba_dominio, return_to_menu,'Voltar para o menu')
@@ -644,7 +667,7 @@ resultado_text_dom.insert(tk.END,
 # Aba Raiz 
 lb2 = tk.Label(aba_raizes, text='insira o número:', font=("Helvetica", 12))
 lb2.pack()
-entradaraiz = inputstr(aba_raizes)
+entradaraiz = labeled_input(aba_raizes, "Expressão:")
 lb3 = tk.Label(aba_raizes, text='insira o índice:', font=("Helvetica", 12))  # Novo label para o índice
 lb3.pack()
 entradaindice = inputstr(aba_raizes)  # Novo campo para o índice
@@ -673,13 +696,13 @@ lb_iii.image = imagem_raiz
 # Aba Limites
 lb4 = tk.Label(aba_limite, text='Insira abaixo o limite:', font=("Helvetica", 12))
 lb4.pack()
-entradalimit = inputstr(aba_limite)
+entradalimit = labeled_input(aba_limite, "Expressão:")
 lb5 = tk.Label(aba_limite, text='Insira a variável:', font=("Helvetica", 12))
 lb5.pack()
-entradavar = inputstr(aba_limite)
+entradavar = labeled_input(aba_limite, "variavel")
 lb6 = tk.Label(aba_limite, text='variável tende para que número?', font=("Helvetica", 12))
 lb6.pack()
-entradatend = inputstr(aba_limite)
+entradatend = labeled_input(aba_limite, "tendencia")
 
 direcao_var = tk.StringVar(value="Ambos")  # Valor padrão é "Ambos"
 direcao_menu = tk.OptionMenu(aba_limite, direcao_var, "Esquerda", "Direita", "Ambos")
@@ -712,10 +735,10 @@ lb_ii.image = imagem_lim
 # Aba Derivadas
 lb7 = tk.Label(aba_derivada, text='Insira abaixo a função:', font=("Helvetica", 12))
 lb7.pack()
-entradaderiv = inputstr(aba_derivada)
+entradaderiv = labeled_input(aba_derivada, "")
 lb8 = tk.Label(aba_derivada, text='Insira o ponto:', font=("Helvetica", 12))
 lb8.pack()
-entradaponto = inputstr(aba_derivada)
+entradaponto = labeled_input(aba_derivada, "")
 botao(aba_derivada, calculo_derivada , 'Calcular')
 botao(aba_derivada, exemplo_derivada, "Exemplo")
 botao(aba_derivada, return_to_menu , 'Voltar para o menu')
@@ -740,10 +763,10 @@ lb_i.image = imagem
 # Aba Gráficos
 lb9 = tk.Label(aba_graficos, text='Insira a função (use "x" como variável):', font=("Arial", 12))
 lb9.pack()
-entrada_grafico = inputstr(aba_graficos)
+entrada_grafico = labeled_input(aba_graficos, "")
 lb13 = tk.Label(aba_graficos, text='Insira o intervalo:', font=("Arial", 12))
 lb13.pack()
-intervalo = inputstr(aba_graficos)
+intervalo = labeled_input(aba_graficos, "")
 show_points_var = tk.IntVar()
 show_points_checkbox = tk.Checkbutton(aba_graficos, text="Mostrar pontos de inflexão, mínimos e máximos", variable=show_points_var)
 show_points_checkbox.pack()
@@ -757,13 +780,13 @@ resultado_text_grafico.tag_configure("padding", lmargin1=10, lmargin2=10, rmargi
 # Aba Integrais 
 lb10 = tk.Label(aba_integrais , text="Insira a função:" , font=("Arial", 12))
 lb10.pack()
-entrada_integrais = inputstr(aba_integrais)
+entrada_integrais = labeled_input(aba_integrais, "")
 lb11 = tk.Label(aba_integrais , text="Limite inferior (opcional):" , font=("Arial", 12))
 lb11.pack()
-entrada_limite_inf = inputstr(aba_integrais)
+entrada_limite_inf = labeled_input(aba_integrais, "")
 lb12 = tk.Label(aba_integrais , text="Limite superior (opcional):" , font=("Arial", 12))
 lb12.pack()
-entrada_limite_sup = inputstr(aba_integrais)
+entrada_limite_sup = labeled_input(aba_integrais, "")
 botao(aba_integrais, calculo_integral , 'Calcular')
 botao(aba_integrais, exemplo_integral, "Exemplo")
 botao(aba_integrais, return_to_menu, 'Voltar para o menu')
