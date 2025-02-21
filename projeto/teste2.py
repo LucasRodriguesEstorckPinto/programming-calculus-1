@@ -308,7 +308,7 @@ def plot_grafico():
         resultado_text_grafico.insert(ctk.END, result_text + "\nGráfico plotado com sucesso!")
         
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n{e}")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n")
 def calcular_dominio(func, x):
     try:
         dominio = sp.calculus.util.continuous_domain(func, x, sp.S.Reals)
@@ -329,7 +329,7 @@ def calcular_dominio(func, x):
             else:
                 return "Domínio não determinado"
         except Exception as e2:
-            return f"Erro ao calcular o domínio: {e} | {e2}"
+            return f"Erro ao calcular o domínio:"
 
 def calcular_imagem(func, x, dominio):
     try:
@@ -405,7 +405,7 @@ def calcular_imagem(func, x, dominio):
         else:
             return "Imagem indefinida (não foram encontrados valores válidos)"
     except Exception as e:
-        return f"Erro ao calcular a imagem: {e}"
+        return f"Erro ao calcular a imagem:"
 
 def calculo_dominio_imagem():
     global resultado_text_dom, entradadom
@@ -416,7 +416,7 @@ def calculo_dominio_imagem():
             func = sp.sympify(func_str)
         except Exception as e:
             resultado_text_dom.delete("1.0", ctk.END)
-            resultado_text_dom.insert(ctk.END, f"Erro ao interpretar a função: {e}")
+            resultado_text_dom.insert(ctk.END, f"Erro ao interpretar a função:")
             return
         
         dominio = calcular_dominio(func, x)
@@ -434,7 +434,7 @@ Imagem: {imagem}
         resultado_text_dom.delete("1.0", ctk.END)
         resultado_text_dom.insert(ctk.END, resultado)
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular domínio e imagem: {e}")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular domínio e imagem:")
 
 def calculo_integral():
     global resultado_text_integral, entrada_integrais, entrada_limite_inf, entrada_limite_sup
@@ -457,7 +457,7 @@ def calculo_integral():
             resultado_text_integral.delete("1.0", ctk.END)
             resultado_text_integral.insert(ctk.END, f"A integral indefinida da função é: {integral} + C\n")
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral: {e}")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral:")
 
 def plot_func_tangente():
     try:
@@ -484,7 +484,7 @@ def plot_func_tangente():
         plt.show()
 
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico: {e}")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico:")
 
 def exemplo_raiz():
     example_text = ("Exemplo de Raiz Quadrada:\n"
