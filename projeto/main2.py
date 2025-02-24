@@ -5,6 +5,8 @@ import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
 import re
+from PIL import Image
+
 
 # Configuração do tema (dark, light ou system)
 ctk.set_appearance_mode("dark")
@@ -549,6 +551,22 @@ def exemplo_integral():
     resultado_text_integral.delete("1.0", ctk.END)
     resultado_text_integral.insert(ctk.END, example_text)
 
+def abrir_explicacao_integral():
+    janela_explicacao = ctk.CTkToplevel()
+    janela_explicacao.title("Explicação sobre Integrais")
+    janela_explicacao.geometry("500x300")
+
+    texto_explicacao = """A integral de uma função representa a área sob a curva dessa função em um determinado intervalo. 
+Ela é usada para calcular áreas, volumes e resolver problemas físicos como trabalho e deslocamento.
+
+Fonte: Stewart, James. Cálculo. 8ª edição."""
+
+    label_texto = ctk.CTkLabel(janela_explicacao, text=texto_explicacao, wraplength=450, justify="left")
+    label_texto.pack(padx=20, pady=20)
+
+    botao_fechar = ctk.CTkButton(janela_explicacao, text="Fechar", command=janela_explicacao.destroy)
+    botao_fechar.pack(pady=10)
+
 # =============================================================================
 #   NOVAS FUNÇÕES DE INTERFACE COM CUSTOMTKINTER
 # =============================================================================
@@ -644,6 +662,13 @@ class App(ctk.CTk):
         resultado_text_deriv = ctk.CTkTextbox(frame_deriv, height=200, width=600, font=font)
         resultado_text_deriv.pack(padx=10, pady=10)
 
+        #Carregar a imagem
+        imagem_deriv = ctk.CTkImage(light_image=Image.open("deriva.png"), size=(200, 100))
+
+        # Criar label para exibir a imagem
+        label_imagem = ctk.CTkLabel(frame_deriv, image=imagem_deriv, text="")
+        label_imagem.pack(pady=10)
+
         # --------------------- Aba: Limites ---------------------
         frame_lim = tabview.tab("Limites")
         global entradalimit, entradavar, entradatend, direcao_var, resultado_text_limite
@@ -658,6 +683,13 @@ class App(ctk.CTk):
         resultado_text_limite = ctk.CTkTextbox(frame_lim, height=200, width=600, font=font)
         resultado_text_limite.pack(padx=10, pady=10)
 
+        #Carregar a imagem
+        imagem_lim = ctk.CTkImage(light_image=Image.open("limit.png"), size=(200, 100))
+
+        # Criar label para exibir a imagem
+        label_imagem = ctk.CTkLabel(frame_lim, image=imagem_lim, text="")
+        label_imagem.pack(pady=10)
+
         # --------------------- Aba: Raiz ---------------------
         frame_raiz = tabview.tab("Raiz")
         global entradaraiz, entradaindice, resultado_text_raiz
@@ -667,6 +699,13 @@ class App(ctk.CTk):
         botao(frame_raiz, exemplo_raiz, "Exemplo")
         resultado_text_raiz = ctk.CTkTextbox(frame_raiz, height=200, width=600, font=font)
         resultado_text_raiz.pack(padx=10, pady=10)
+
+        #Carregar a imagem
+        imagem_raiz = ctk.CTkImage(light_image=Image.open("raiz.png"), size=(200, 100))
+
+        # Criar label para exibir a imagem
+        label_imagem = ctk.CTkLabel(frame_raiz, image=imagem_raiz, text="")
+        label_imagem.pack(pady=10)
 
         # --------------------- Aba: Gráficos ---------------------
         frame_graf = tabview.tab("Gráficos")
@@ -683,6 +722,11 @@ class App(ctk.CTk):
         # --------------------- Aba: Integrais ---------------------
         frame_int = tabview.tab("Integrais")
         global entrada_integrais, entrada_limite_inf, entrada_limite_sup, resultado_text_integral
+        
+        # Botão para abrir a explicação
+        botao_explicacao = ctk.CTkButton(frame_int, text="O que é Integral?", command=abrir_explicacao_integral)
+        botao_explicacao.pack(pady=10)
+
         entrada_integrais = labeled_input(frame_int, "Função:")
         entrada_limite_inf = labeled_input(frame_int, "Limite inferior:")
         entrada_limite_sup = labeled_input(frame_int, "Limite superior:")
@@ -690,6 +734,13 @@ class App(ctk.CTk):
         botao(frame_int, exemplo_integral, "Exemplo")
         resultado_text_integral = ctk.CTkTextbox(frame_int, height=200, width=600, font=font)
         resultado_text_integral.pack(padx=10, pady=10)
+
+        #Carregar a imagem
+        imagem_integral = ctk.CTkImage(light_image=Image.open("integral.png"), size=(300, 200))
+
+        # Criar label para exibir a imagem
+        label_imagem = ctk.CTkLabel(frame_int, image=imagem_integral, text="")
+        label_imagem.pack(pady=10)
 
         # --------------------- Aba: Manual ---------------------
         frame_man = tabview.tab("Manual"
