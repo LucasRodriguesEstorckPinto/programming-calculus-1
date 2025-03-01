@@ -567,6 +567,55 @@ Fonte: Stewart, James. Cálculo. 8ª edição."""
     botao_fechar = ctk.CTkButton(janela_explicacao, text="Fechar", command=janela_explicacao.destroy)
     botao_fechar.pack(pady=10)
 
+def abrir_explicacao_derivada():
+    janela_explicacao = ctk.CTkToplevel()
+    janela_explicacao.title("Explicação sobre Derivadas")
+    janela_explicacao.geometry("500x300")
+
+    texto_explicacao = """A derivada de uma função representa a taxa de variação dessa função em um determinado ponto.
+Ela é usada para calcular velocidades, acelerações e resolver problemas físicos como otimização e crescimento populacional.
+
+Fonte: Stewart, James. Cálculo. 8ª edição."""
+
+    label_texto = ctk.CTkLabel(janela_explicacao, text=texto_explicacao, wraplength=450, justify="left")
+    label_texto.pack(padx=20, pady=20)
+
+    botao_fechar = ctk.CTkButton(janela_explicacao, text="Fechar", command=janela_explicacao.destroy)
+    botao_fechar.pack(pady=10)
+
+def abrir_explicacao_limites():
+    janela_explicacao = ctk.CTkToplevel()
+    janela_explicacao.title("Explicação sobre Limites")
+    janela_explicacao.geometry("500x300")
+
+    texto_explicacao = """O limite de uma função descreve o comportamento dessa função à medida que a variável independente se aproxima de um determinado valor.
+Ele é usado para definir derivadas, integrais e resolver problemas envolvendo continuidade e comportamento assintótico.
+
+Fonte: Stewart, James. Cálculo. 8ª edição."""
+
+    label_texto = ctk.CTkLabel(janela_explicacao, text=texto_explicacao, wraplength=450, justify="left")
+    label_texto.pack(padx=20, pady=20)
+
+    botao_fechar = ctk.CTkButton(janela_explicacao, text="Fechar", command=janela_explicacao.destroy)
+    botao_fechar.pack(pady=10)
+
+def abrir_explicacao_dominios():
+    janela_explicacao = ctk.CTkToplevel()
+    janela_explicacao.title("Explicação sobre Limites")
+    janela_explicacao.geometry("500x300")
+
+    texto_explicacao = """O domínio de uma função é o conjunto de todos os valores de entrada para os quais a função está definida.
+A imagem de uma função é o conjunto de todos os valores de saída que a função pode assumir.
+Eles são usados para entender o comportamento e as restrições de funções em diversos contextos matemáticos e aplicados.
+
+Fonte: Stewart, James. Cálculo. 8ª edição."""
+
+    label_texto = ctk.CTkLabel(janela_explicacao, text=texto_explicacao, wraplength=450, justify="left")
+    label_texto.pack(padx=20, pady=20)
+
+    botao_fechar = ctk.CTkButton(janela_explicacao, text="Fechar", command=janela_explicacao.destroy)
+    botao_fechar.pack(pady=10)
+
 # =============================================================================
 #   NOVAS FUNÇÕES DE INTERFACE COM CUSTOMTKINTER
 # =============================================================================
@@ -645,6 +694,11 @@ class App(ctk.CTk):
         # --------------------- Aba: Domínio e Imagem ---------------------
         frame_dom = tabview.tab("Domínio e Imagem")
         global entradadom, resultado_text_dom
+
+        # Botão para abrir a explicação
+        botao_explicacao = ctk.CTkButton(frame_dom, text="O que são Domínios e Imagens?", command=abrir_explicacao_dominios)
+        botao_explicacao.pack(pady=10)
+
         entradadom = labeled_input(frame_dom, "Expressão:")
         botao(frame_dom, calculo_dominio_imagem, "Calcular")
         botao(frame_dom, exemplo_dominio_imagem, "Exemplo")
@@ -654,6 +708,11 @@ class App(ctk.CTk):
         # --------------------- Aba: Derivadas ---------------------
         frame_deriv = tabview.tab("Derivadas")
         global entradaderiv, entradaponto, resultado_text_deriv
+        
+        # Botão para abrir a explicação
+        botao_explicacao = ctk.CTkButton(frame_deriv, text="O que é Derivada?", command=abrir_explicacao_derivada)
+        botao_explicacao.pack(pady=10)
+
         entradaderiv = labeled_input(frame_deriv, "Função:")
         entradaponto = labeled_input(frame_deriv, "Ponto:")
         botao(frame_deriv, calculo_derivada, "Calcular")
@@ -672,6 +731,11 @@ class App(ctk.CTk):
         # --------------------- Aba: Limites ---------------------
         frame_lim = tabview.tab("Limites")
         global entradalimit, entradavar, entradatend, direcao_var, resultado_text_limite
+
+        # Botão para abrir a explicação
+        botao_explicacao = ctk.CTkButton(frame_lim, text="O que são Limites?", command=abrir_explicacao_limites)
+        botao_explicacao.pack(pady=10)
+
         entradalimit = labeled_input(frame_lim, "Função:")
         entradavar = labeled_input(frame_lim, "Variável:")
         entradatend = labeled_input(frame_lim, "Tendendo a:")
