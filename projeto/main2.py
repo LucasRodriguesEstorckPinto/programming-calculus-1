@@ -311,136 +311,516 @@ def plot_grafico():
         
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico. Verifique sua entrada.\n")
-def calcular_dominio(func, x):
+
+
+def formatar_intervalo(intervalo):
+    """
+    Formata um intervalo de SymPy em uma notação matemática mais amigável.
+    
+    Args:
+        intervalo: Objeto de intervalo do SymPy
+        
+    Returns:
+        String formatada com notação matemática amigável
+    """
+    if not isinstance(intervalo, (sp.Interval, sp.Union)):
+        return str(intervalo)
+    
+    # Caso seja uma união de intervalos
+    if isinstance(intervalo, sp.Union):
+        intervalos_formatados = [formatar_intervalo(i) for i in intervalo.args]
+        return " ∪ ".join(intervalos_formatados)
+    
+    # Formatação para um único intervalo
+    esquerda = intervalo.left
+    direita = intervalo.right
+    
+    # Formatação do limite esquerdo
+    if esquerda == -sp.oo:
+        inicio = "(-∞"
+    else:
+        valor_esq = float(esquerda.evalf())
+        # Arredondar para melhor legibilidade
+        if abs(valor_esq - round(valor_esq)) < 1e-10:
+            valor_esq = int(round(valor_esq))
+        elif abs(valor_esq) < 1000:
+            valor_esq = round(valor_esq, 4)
+            # Remover zeros desnecessários
+            valor_esq = str(valor_esq).rstrip('0').rstrip('.') if '.' in str(valor_esq) else valor_esq
+        
+        if intervalo.left_open:
+            inicio = f"({valor_esq}"
+        else:
+            inicio = f"[{valor_esq}"
+    
+    # Formatação do limite direito
+    if direita == sp.oo:
+        fim = "+∞)"
+    else:
+        valor_dir = float(direita.evalf())
+        # Arredondar para melhor legibilidade
+        if abs(valor_dir - round(valor_dir)) < 1e-10:
+            valor_dir = int(round(valor_dir))
+        elif abs(valor_dir) < 1000:
+            valor_dir = round(valor_dir, 4)
+            # Remover zeros desnecessários
+            valor_dir = str(valor_dir).rstrip('0').rstrip('.') if '.' in str(valor_dir) else valor_dir
+        
+        if intervalo.right_open:
+            fim = f"{valor_dir})"
+        else:
+            fim = f"{valor_dir}]"
+    
+    return f"{inicio}, {fim}"
+
+def formatar_conjunto(conjunto):
+    """
+    Formata um conjunto matemático de forma amigável.
+    
+    Args:
+        conjunto: Conjunto matemático (pode ser intervalo, união, ou texto)
+        
+    Returns:
+        String formatada para fácil compreensão
+    """
+    if isinstance(conjunto, str):
+        return conjunto
+    
+    # Formatação para intervalos e uniões
+    if isinstance(conjunto, (sp.Interval, sp.Union)):
+        return formatar_intervalo(conjunto)
+    
+    # Caso seja ℝ (conjunto dos reais)
+    if conjunto == sp.S.Reals:
+        return "ℝ (todos os números reais)"
+    
+    # Para outros tipos de conjuntos, retorna a string do objeto
+    return str(conjunto)
+
+def explicar_dominio(dominio, func_str):
+    """
+    Fornece uma explicação em linguagem simples sobre o domínio.
+    
+    Args:
+        dominio: Domínio calculado
+        func_str: String da função
+        
+    Returns:
+        Explicação em texto do domínio
+    """
+    # Casos especiais comuns
+    if dominio == sp.S.Reals:
+        return "Todos os números reais (não há restrições)"
+    
+    if isinstance(dominio, str):
+        return dominio
+    
+    # Para funções com raiz quadrada
+    if "sqrt" in func_str or "**0.5" in func_str:
+        return f"O domínio é {formatar_conjunto(dominio)}. As expressões dentro das raízes devem ser não-negativas."
+    
+    # Para funções racionais
+    if "/" in func_str or "**-1" in func_str:
+        return f"O domínio é {formatar_conjunto(dominio)}. O denominador não pode ser zero."
+    
+    # Para funções logarítmicas
+    if "log" in func_str:
+        return f"O domínio é {formatar_conjunto(dominio)}. Os argumentos de logaritmos devem ser positivos."
+    
+    # Para funções trigonométricas inversas
+    if any(trig in func_str for trig in ["asin", "acos", "atan", "arcsin", "arccos", "arctan"]):
+        if "asin" in func_str or "arcsin" in func_str:
+            return f"O domínio é {formatar_conjunto(dominio)}. Para arcsen, o argumento deve estar entre -1 e 1."
+        elif "acos" in func_str or "arccos" in func_str:
+            return f"O domínio é {formatar_conjunto(dominio)}. Para arccos, o argumento deve estar entre -1 e 1."
+        else:
+            return f"O domínio é {formatar_conjunto(dominio)}."
+    
+    # Caso genérico
+    return f"O domínio da função é {formatar_conjunto(dominio)}."
+
+def explicar_imagem(imagem, func_str):
+    """
+    Fornece uma explicação em linguagem simples sobre a imagem.
+    
+    Args:
+        imagem: Imagem calculada
+        func_str: String da função
+        
+    Returns:
+        Explicação em texto da imagem
+    """
+    # Casos especiais
+    if isinstance(imagem, str):
+        return imagem
+    
+    # Para funções com "comportamento especial"
+    if "sin" in func_str or "cos" in func_str:
+        if imagem == sp.Interval(-1, 1):
+            return "A imagem é [-1, 1]. Funções seno e cosseno variam apenas entre -1 e 1."
+    
+    if "tan" in func_str:
+        if "ℝ" in str(imagem):
+            return "A imagem é ℝ (todos os números reais). A função tangente pode assumir qualquer valor real."
+    
+    # Para funções polinomiais
     try:
+        if "x**" in func_str:
+            if "x**2" in func_str and imagem == sp.Interval(0, sp.oo):
+                return "A imagem é [0, +∞). Funções quadráticas do tipo ax² + bx + c (com a > 0) têm imagem limitada inferiormente."
+            if imagem == sp.S.Reals:
+                return "A imagem é ℝ (todos os números reais). Esta função polinomial assume todos os valores reais."
+    except Exception:
+        pass
+    
+    # Caso genérico
+    return f"A imagem da função é {formatar_conjunto(imagem)}."
+
+def calcular_dominio(func, x):
+    """
+    Calcula o domínio de uma função usando métodos analíticos e numéricos.
+    
+    Args:
+        func: Expressão SymPy da função
+        x: Variável SymPy
+        
+    Returns:
+        Domínio da função como um objeto Interval ou uma descrição textual
+    """
+    try:
+        # Tenta o método analítico primeiro
         dominio = sp.calculus.util.continuous_domain(func, x, sp.S.Reals)
         return dominio
-    except Exception as e:
+    except Exception:
+        # Se o método analítico falhar, usa uma abordagem numérica
         try:
-            sample_points = np.linspace(-100, 100, 1000)
-            valid_points = []
-            for val in sample_points:
-                try:
-                    result = func.subs(x, val)
-                    if result.is_real and not result.has(sp.oo, sp.zoo, sp.nan):
-                        valid_points.append(val)
-                except Exception:
-                    continue
-            if valid_points:
-                return sp.Interval(min(valid_points), max(valid_points))
+            # Identifica pontos problemáticos (divisão por zero, raízes negativas, etc.)
+            denominadores = []
+            # Extrair denominadores para verificar divisões por zero
+            for atom in func.atoms(sp.Pow):
+                if atom.exp < 0:  # Potência negativa indica um denominador
+                    denominadores.append(atom.base)
+            
+            # Adiciona expressões dentro de raízes quadradas para verificar domínio
+            raizes = []
+            for atom in func.atoms(sp.Pow):
+                if atom.exp == 0.5 and atom.base.has(x):  # Raiz quadrada
+                    raizes.append(atom.base)
+            
+            # Adicionar expressões dentro de logaritmos
+            logs = []
+            for atom in func.atoms(sp.log):
+                if atom.args[0].has(x):
+                    logs.append(atom.args[0])
+            
+            # Resolver restrições de domínio
+            restricoes = []
+            for denom in denominadores:
+                restricoes.extend(sp.solve(denom, x))
+            
+            for raiz in raizes:
+                restricoes.extend(sp.solve(raiz < 0, x))
+                
+            for log_arg in logs:
+                restricoes.extend(sp.solve(log_arg <= 0, x))
+            
+            # Se não conseguirmos identificar restrições analiticamente, usamos amostragem numérica
+            if not restricoes:
+                sample_points = np.linspace(-1000, 1000, 2000)
+                valid_points = []
+                for val in sample_points:
+                    try:
+                        result = float(func.subs(x, val).evalf())
+                        if np.isfinite(result) and not np.isnan(result):
+                            valid_points.append(val)
+                    except Exception:
+                        continue
+                
+                if valid_points:
+                    return sp.Interval(min(valid_points), max(valid_points))
+                else:
+                    return "Domínio não determinado"
             else:
-                return "Domínio não determinado"
-        except Exception as e2:
-            return f"Erro ao calcular o domínio:"
+                # Converter as restrições em intervalos
+                restricoes_reais = [float(ponto.evalf()) for ponto in restricoes if ponto.is_real]
+                restricoes_reais.sort()
+                
+                # Verificar cada intervalo entre as restrições
+                intervalos_validos = []
+                pontos_teste = restricoes_reais + [-float('inf'), float('inf')]
+                pontos_teste.sort()
+                
+                for i in range(len(pontos_teste) - 1):
+                    ponto_medio = (pontos_teste[i] + pontos_teste[i+1]) / 2
+                    if pontos_teste[i+1] - pontos_teste[i] <= 1e-10:
+                        continue
+                        
+                    try:
+                        if pontos_teste[i] == -float('inf'):
+                            ponto_medio = pontos_teste[i+1] - 1
+                        elif pontos_teste[i+1] == float('inf'):
+                            ponto_medio = pontos_teste[i] + 1
+                            
+                        result = float(func.subs(x, ponto_medio).evalf())
+                        if np.isfinite(result) and not np.isnan(result):
+                            if pontos_teste[i] == -float('inf'):
+                                intervalos_validos.append(sp.Interval(-sp.oo, pontos_teste[i+1], right_open=True))
+                            elif pontos_teste[i+1] == float('inf'):
+                                intervalos_validos.append(sp.Interval(pontos_teste[i], sp.oo, left_open=True))
+                            else:
+                                intervalos_validos.append(sp.Interval(pontos_teste[i], pontos_teste[i+1], left_open=True, right_open=True))
+                    except Exception:
+                        continue
+                
+                if intervalos_validos:
+                    # Unir intervalos adjacentes
+                    if len(intervalos_validos) > 1:
+                        return sp.Union(*intervalos_validos)
+                    else:
+                        return intervalos_validos[0]
+                else:
+                    return "Domínio não determinado"
+        except Exception as e:
+            return f"Erro ao calcular o domínio: {e}"
 
 def calcular_imagem(func, x, dominio):
-    try:
-        func_str = str(func)
-        if func_str.strip() in ['sin(x)', 'cos(x)']:
-            return "[-1, 1]"
-        if any(trig in func_str for trig in ['tan', 'cot']):
-            return "Todos os reais (exceto singularidades)"
-        if any(trig in func_str for trig in ['sec', 'csc']):
-            return "(-∞, -1] ∪ [1, ∞)"
+    """
+    Calcula a imagem de uma função usando análise numérica e analítica.
+    
+    Args:
+        func: Expressão SymPy da função
+        x: Variável SymPy
+        dominio: Domínio da função calculado anteriormente
         
+    Returns:
+        Imagem da função como um intervalo ou uma descrição textual
+    """
+    try:
+        # Detecção de funções especiais com imagens conhecidas
+        func_str = str(func)
+        
+        # Funções trigonométricas com imagens conhecidas
+        if func_str.strip() in ['sin(x)', 'cos(x)']:
+            return sp.Interval(-1, 1)
+        if 'tan(x)' == func_str.strip() or 'cot(x)' == func_str.strip():
+            return "ℝ (exceto singularidades)"
+        if 'sec(x)' == func_str.strip() or 'csc(x)' == func_str.strip():
+            return sp.Union(sp.Interval(-sp.oo, -1), sp.Interval(1, sp.oo))
+        
+        # Polinômios de grau ímpar
+        try:
+            poly = sp.Poly(func, x)
+            if poly.degree() % 2 == 1:  # Grau ímpar
+                return "ℝ"
+        except Exception:
+            pass
+            
+        # Coletar pontos críticos e extremidades do domínio
         y_values = []
+        
+        # Pontos críticos (onde a derivada é zero)
         try:
             deriv = sp.diff(func, x)
             critical_points = sp.solve(deriv, x)
+            
             for cp in critical_points:
                 try:
                     cp_val = float(cp.evalf())
-                    if isinstance(dominio, sp.Interval):
+                    # Verificar se o ponto crítico está no domínio
+                    if isinstance(dominio, sp.Interval) or isinstance(dominio, sp.Union):
                         if dominio.contains(cp_val):
-                            y_val = func.subs(x, cp)
-                            y_values.append(y_val)
-                    else:
-                        y_values.append(func.subs(x, cp))
+                            y_val = func.subs(x, cp).evalf()
+                            if y_val.is_real and not y_val.has(sp.oo, sp.zoo, sp.nan):
+                                y_values.append(float(y_val))
                 except Exception:
                     continue
         except Exception:
             pass
-
+        
+        # Calcular limites nos extremos do domínio
         try:
-            limit_pos = sp.limit(func, x, sp.oo)
-            if limit_pos.is_real and not limit_pos.has(sp.oo, sp.zoo, sp.nan):
-                y_values.append(limit_pos)
+            # Extremidades do domínio
+            limites_externos = []
+            
+            if isinstance(dominio, sp.Interval):
+                intervalos = [dominio]
+            elif isinstance(dominio, sp.Union):
+                intervalos = dominio.args
+            else:
+                intervalos = []
+                
+            for intervalo in intervalos:
+                # Limite no início do intervalo
+                if intervalo.left == -sp.oo:
+                    limite_esq = sp.limit(func, x, -sp.oo)
+                else:
+                    ponto_limite = intervalo.left + 1e-10 if intervalo.left_open else intervalo.left
+                    limite_esq = func.subs(x, ponto_limite).evalf()
+                
+                if limite_esq.is_real and not limite_esq.has(sp.oo, sp.zoo, sp.nan):
+                    limites_externos.append(float(limite_esq))
+                
+                # Limite no fim do intervalo
+                if intervalo.right == sp.oo:
+                    limite_dir = sp.limit(func, x, sp.oo)
+                else:
+                    ponto_limite = intervalo.right - 1e-10 if intervalo.right_open else intervalo.right
+                    limite_dir = func.subs(x, ponto_limite).evalf()
+                
+                if limite_dir.is_real and not limite_dir.has(sp.oo, sp.zoo, sp.nan):
+                    limites_externos.append(float(limite_dir))
+            
+            y_values.extend(limites_externos)
         except Exception:
             pass
-        try:
-            limit_neg = sp.limit(func, x, -sp.oo)
-            if limit_neg.is_real and not limit_neg.has(sp.oo, sp.zoo, sp.nan):
-                y_values.append(limit_neg)
-        except Exception:
-            pass
-
+            
+        # Amostragem numérica dentro do domínio
         try:
             if isinstance(dominio, sp.Interval):
-                a = float(dominio.start) if dominio.start != -sp.oo else -100
-                b = float(dominio.end) if dominio.end != sp.oo else 100
+                # Para um único intervalo
+                a = float(dominio.left) if dominio.left != -sp.oo else -1000
+                b = float(dominio.right) if dominio.right != sp.oo else 1000
+                sample_points = np.linspace(a, b, 1000)
+                
+                for val in sample_points:
+                    try:
+                        y_val = func.subs(x, val).evalf()
+                        if y_val.is_real and not y_val.has(sp.oo, sp.zoo, sp.nan):
+                            y_values.append(float(y_val))
+                    except Exception:
+                        continue
+            elif isinstance(dominio, sp.Union):
+                # Para múltiplos intervalos
+                for intervalo in dominio.args:
+                    a = float(intervalo.left) if intervalo.left != -sp.oo else -1000
+                    b = float(intervalo.right) if intervalo.right != sp.oo else 1000
+                    
+                    # Garantir que a amostragem seja razoável
+                    if b - a > 2000:
+                        num_points = 2000
+                    else:
+                        num_points = min(int((b - a) * 10), 1000)
+                        num_points = max(num_points, 50)  # Pelo menos 50 pontos
+                        
+                    sample_points = np.linspace(a, b, num_points)
+                    
+                    for val in sample_points:
+                        try:
+                            y_val = func.subs(x, val).evalf()
+                            if y_val.is_real and not y_val.has(sp.oo, sp.zoo, sp.nan):
+                                y_values.append(float(y_val))
+                        except Exception:
+                            continue
             else:
-                a, b = -100, 100
-            sample_points = np.linspace(a, b, 1000)
-            for val in sample_points:
-                try:
-                    y_val = func.subs(x, sp.Float(val))
-                    if y_val.is_real and not y_val.has(sp.oo, sp.zoo, sp.nan):
-                        y_values.append(float(y_val))
-                except Exception:
-                    continue
+                # Fallback para domínio não reconhecido
+                sample_points = np.linspace(-1000, 1000, 2000)
+                for val in sample_points:
+                    try:
+                        y_val = func.subs(x, val).evalf()
+                        if y_val.is_real and not y_val.has(sp.oo, sp.zoo, sp.nan):
+                            y_values.append(float(y_val))
+                    except Exception:
+                        continue
         except Exception:
             pass
-
+            
+        # Verificar singularidades e comportamento assintótico
+        if not y_values:
+            return "Imagem indefinida (não foram encontrados valores válidos)"
+            
+        # Remover valores duplicados e determinar o intervalo
         y_values_clean = []
         for y in y_values:
-            try:
-                y_num = float(y)
-                if not any(abs(y_num - float(existing)) < 1e-5 for existing in y_values_clean):
-                    y_values_clean.append(y_num)
-            except Exception:
-                y_values_clean.append(y)
+            if np.isfinite(y) and not np.isnan(y):
+                # Evitar duplicatas
+                if not any(abs(y - existing) < 1e-5 for existing in y_values_clean):
+                    y_values_clean.append(y)
         
-        if y_values_clean:
-            min_val = min(y_values_clean)
-            max_val = max(y_values_clean)
-            if max_val >= 2000:
-                return f"[{min_val:.5f} , +00]"
-            else:
-                return f"[{min_val:.4f}, {max_val:.4f}]"
-        else:
+        if not y_values_clean:
             return "Imagem indefinida (não foram encontrados valores válidos)"
+            
+        min_val = min(y_values_clean)
+        max_val = max(y_values_clean)
+        
+        # Checar se a imagem é ℝ
+        if max_val - min_val > 1e6 or (min_val < -1e3 and max_val > 1e3):
+            # Provavelmente a imagem é ℝ
+            return "ℝ"
+            
+        # Verificar se a imagem tem limite superior ou inferior
+        asymp_inf = False
+        asymp_neg_inf = False
+        
+        for val in np.linspace(-1000, 1000, 100):
+            try:
+                y_val = float(func.subs(x, val).evalf())
+                if y_val > max_val * 10:
+                    asymp_inf = True
+                if y_val < min_val * 10:
+                    asymp_neg_inf = True
+            except Exception:
+                continue
+                
+        if asymp_inf and asymp_neg_inf:
+            return "ℝ"
+        elif asymp_inf:
+            return sp.Interval(min_val, sp.oo)
+        elif asymp_neg_inf:
+            return sp.Interval(-sp.oo, max_val)
+        else:
+            return sp.Interval(min_val, max_val)
     except Exception as e:
-        return f"Erro ao calcular a imagem:"
+        return f"Erro ao calcular a imagem: {e}"
 
 def calculo_dominio_imagem():
+    """
+    Função principal que processa a entrada do usuário e calcula domínio e imagem.
+    """
     global resultado_text_dom, entradadom
     try:
         func_str = entradadom.get()
         x = sp.symbols('x')
+        
+        # Substituir notações comuns para melhorar a interpretação
+        func_str = func_str.replace("^", "**")
+        func_str = func_str.replace("sen", "sin")
+        func_str = func_str.replace("arctg", "atan")
+        func_str = func_str.replace("arcsen", "asin")
+        func_str = func_str.replace("arccos", "acos")
+        
         try:
             func = sp.sympify(func_str)
         except Exception as e:
             resultado_text_dom.delete("1.0", ctk.END)
-            resultado_text_dom.insert(ctk.END, f"Erro ao interpretar a função")
+            resultado_text_dom.insert(ctk.END, f"Erro ao interpretar a função: {e}")
             return
         
+        # Calcular domínio e imagem
         dominio = calcular_dominio(func, x)
+        
         if isinstance(dominio, str) and "Erro" in dominio:
             imagem = "Não foi possível calcular a imagem devido ao domínio inválido."
         else:
             imagem = calcular_imagem(func, x, dominio)
         
+        # Formatar o resultado para exibição
+        dominio_explicado = explicar_dominio(dominio, func_str)
+        imagem_explicada = explicar_imagem(imagem, func_str)
+        
         resultado = f"""Resultados:
 ========================
 Função: {func_str}
-Domínio: {dominio}
-Imagem: {imagem}
+
+Domínio: {formatar_conjunto(dominio)}
+{dominio_explicado}
+
+Imagem: {formatar_conjunto(imagem)}
+{imagem_explicada}
 ========================"""
         resultado_text_dom.delete("1.0", ctk.END)
         resultado_text_dom.insert(ctk.END, resultado)
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular domínio e imagem:")
-
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular domínio e imagem: {e}")
 
 def calculo_integral():
     global resultado_text_integral, entrada_integrais, entrada_limite_inf, entrada_limite_sup
