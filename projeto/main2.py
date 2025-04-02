@@ -16,7 +16,6 @@ ctk.set_default_color_theme("blue")
 font = ("Arial", 14)
 
 
-
 def calculo_derivada():
     global resultado_text_deriv, entradaderiv, entradaponto
     try:
