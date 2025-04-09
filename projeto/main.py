@@ -11,8 +11,8 @@ from scipy.optimize import fsolve
 
 
 # Configuração do tema (dark, light ou system)
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+ctk.set_appearance_mode("system")
+ctk.set_default_color_theme("green")
 
 # Fonte padrão para os widgets
 font = ("Arial", 14)
