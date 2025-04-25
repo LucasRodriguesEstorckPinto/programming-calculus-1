@@ -11,7 +11,7 @@ from scipy.optimize import fsolve
 
 
 # Configuração do tema (dark, light ou system)
-ctk.set_appearance_mode("system")
+ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
 
 # Fonte padrão para os widgets
@@ -25,10 +25,10 @@ def calculo_derivada():
         func_str = entradaderiv.get()
         func = sp.sympify(func_str)
         derivada = sp.diff(func, x)
-        
+
         resultado_text_deriv.delete("1.0", ctk.END)
         resultado_text_deriv.insert(ctk.END, f"A derivada da função é: {derivada}\n")
-        
+
         # Verifica se o ponto foi inserido
         point_str = entradaponto.get()
         if point_str:
@@ -51,7 +51,7 @@ def calculo_limite():
         if direcao == "Ambos":
             limite_esquerda = sp.limit(func, variavel, valor_tendencia, dir='-')
             limite_direita = sp.limit(func, variavel, valor_tendencia, dir='+')
-            
+
             resultado_text_limite.delete("1.0", ctk.END)
             if limite_esquerda == limite_direita:
                 resultado_text_limite.insert(ctk.END, f"O limite da função é: {limite_esquerda}")
@@ -62,7 +62,7 @@ def calculo_limite():
                 limite = sp.limit(func, variavel, valor_tendencia, dir='-')
             elif direcao == "Direita":
                 limite = sp.limit(func, variavel, valor_tendencia, dir='+')
-            
+
             resultado_text_limite.delete("1.0", ctk.END)
             resultado_text_limite.insert(ctk.END, f"O limite da função pela {direcao.lower()} é: {limite}")
 
@@ -77,19 +77,19 @@ def raiz():
         if not indice_input:
             raise ValueError("Índice não fornecido")
         indice = int(indice_input)
-        
+
         if indice == 2:
             tolerancia = 1e-10
-            x_val = numero / 2  # estimativa inicial 
-            
+            x_val = numero / 2  # estimativa inicial
+
             while True:
                 raiz_value = 0.5 * (x_val + numero / x_val)
                 if abs(raiz_value - x_val) < tolerancia:
                     break
                 x_val = raiz_value
-        else: 
+        else:
             raiz_value = pow(numero, 1/indice)
-        
+
         resultado_text_raiz.delete("1.0", ctk.END)
         resultado_text_raiz.insert(ctk.END, f"A raíz {indice}-ésima de {numero} é: {raiz_value:.4}")
     except ValueError:
@@ -164,7 +164,7 @@ def numerical_roots(expr, var, a, b, num_points=500):
             val1, val2 = expr_func(x_vals[i]), expr_func(x_vals[i+1])
             if np.isfinite(val1) and np.isfinite(val2) and np.sign(val1) * np.sign(val2) < 0:
                 # Corrigido: Extraímos explicitamente o primeiro elemento do array retornado por fsolve
-                root_array = fsolve(lambda x: float(expr_func(x)) if np.isfinite(float(expr_func(x))) else 0, 
+                root_array = fsolve(lambda x: float(expr_func(x)) if np.isfinite(float(expr_func(x))) else 0,
                                     (x_vals[i] + x_vals[i+1])/2)
                 root = float(root_array[0])  # Pegamos o primeiro elemento do array
                 if a <= root <= b and not any(abs(root - r) < 1e-6 for r in roots):
@@ -191,27 +191,27 @@ def plot_grafico():
             'axes.labelsize': 14,
             'legend.fontsize': 12
         })
-        
+
         # Validação de entrada
         func_str = entrada_grafico.get()
         intervalo_str = intervalo.get()
         func_list, lower, upper = validar_entrada_grafico(func_str, intervalo_str)
-        
+
         # Conversão das funções
         func_sym_list = [sp.sympify(f) for f in func_list]
         func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_sym_list]
 
         # Ajuste da amostragem
         x_vals = ajustar_amostragem(lower, upper)
-        
+
         # Criação do gráfico
         fig, ax = plt.subplots(figsize=(10, 6))
         result_text = ""
-        
+
         for i, (func_sym, func_numeric) in enumerate(zip(func_sym_list, func_numeric_list)):
             y_vals = func_numeric(x_vals)
             ax.plot(x_vals, y_vals, label=f'${sp.latex(func_sym)}$', linewidth=2.5, color=f'C{i}')
-            
+
             # Assíntotas verticais
             try:
                 if func_sym.has(sp.tan):
@@ -227,7 +227,7 @@ def plot_grafico():
                         result_text += f'Assíntota vertical em x = {asy_val:.2f}\n'
             except Exception as e:
                 print(f"Erro ao calcular assíntotas verticais: {e}")
-            
+
             # Assíntotas horizontais
             try:
                 lim_neg = sp.limit(func_sym, x, -sp.oo)
@@ -239,7 +239,7 @@ def plot_grafico():
                         result_text += f'Assíntota horizontal em y = {lim_val:.2f} (limite em {side})\n'
             except Exception as e:
                 print(f"Erro ao calcular assíntotas horizontais: {e}")
-            
+
             # Assíntotas oblíquas
             try:
                 coef, intercept = encontrar_assintota_obliqua(func_sym, x)
@@ -248,12 +248,12 @@ def plot_grafico():
                     result_text += f'Assíntota oblíqua: y = {float(coef):.2f}x + {float(intercept):.2f}\n'
             except Exception as e:
                 print(f"Erro ao calcular assíntota oblíqua: {e}")
-            
+
             # Pontos críticos e inflexões
             fprime, fsecond = calcular_derivadas(func_sym, x)
             cp = numerical_roots(fprime, x, lower, upper)
             ip = numerical_roots(fsecond, x, lower, upper)
-            
+
             if show_points_var.get():
                 colors = ['#e41a1c', '#4daf4a', '#ff7f00', '#984ea3', '#377eb8']
                 markers = ['^', 'v', 'D', 'o', 's']
@@ -265,7 +265,7 @@ def plot_grafico():
                     except Exception:
                         y_p = float(func_sym.subs(x, p).evalf())
                         point_type, color, marker = "Crítico", '#984ea3', 'o'
-                    
+
                     ax.scatter(p, y_p, color=color, marker=marker, s=100, edgecolors='black', zorder=6)
                     ax.annotate(
                         f'{point_type}\n({p:.2f}, {y_p:.2f})',
@@ -275,7 +275,7 @@ def plot_grafico():
                         arrowprops=dict(arrowstyle='-|>', color=color, lw=1.5), zorder=7
                     )
                     result_text += f'{point_type} em ({p:.2f}, {y_p:.2f})\n'
-                
+
                 for p in ip:
                     y_p = float(func_sym.subs(x, p).evalf())
                     ax.scatter(p, y_p, color='#377eb8', marker='s', s=100, edgecolors='black', zorder=6)
@@ -289,7 +289,7 @@ def plot_grafico():
                     result_text += f'Inflexão em ({p:.2f}, {y_p:.2f})\n'
             else:
                 result_text += "Pontos não explicitados (checkbox desativado).\n"
-            
+
             # Intervalos de crescimento e decrescimento
             growth_points = sorted([lower] + cp + [upper])
             for i in range(len(growth_points) - 1):
@@ -304,7 +304,7 @@ def plot_grafico():
                         result_text += f'Constante em [{growth_points[i]:.2f}, {growth_points[i+1]:.2f}]\n'
                 except Exception:
                     continue
-        
+
         # Configurações finais do gráfico
         ax.axhline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
         ax.axvline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
@@ -314,10 +314,10 @@ def plot_grafico():
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         plt.tight_layout()
         plt.show()
-        
+
         resultado_text_grafico.delete("1.0", ctk.END)
         resultado_text_grafico.insert(ctk.END, result_text + "\nGráfico plotado com sucesso!")
-        
+
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico: {str(e)}")
 
@@ -337,17 +337,17 @@ def validar_entrada(func_str):
 def formatar_intervalo(intervalo):
     if not isinstance(intervalo, (sp.Interval, sp.Union, str)):
         return str(intervalo)
-    
+
     if isinstance(intervalo, str):
         return intervalo
-    
+
     if isinstance(intervalo, sp.Union):
         intervalos_formatados = [formatar_intervalo(i) for i in intervalo.args]
         return " ∪ ".join(intervalos_formatados)
-    
+
     esquerda = intervalo.left
     direita = intervalo.right
-    
+
     if esquerda == -sp.oo:
         inicio = "(-∞"
     else:
@@ -356,9 +356,9 @@ def formatar_intervalo(intervalo):
             valor_esq = int(round(valor_esq))
         elif abs(valor_esq) < 1000:
             valor_esq = round(valor_esq, 4).rstrip('0').rstrip('.') if '.' in str(round(valor_esq, 4)) else round(valor_esq, 4)
-        
+
         inicio = f"[{valor_esq}" if not intervalo.left_open else f"({valor_esq}"
-    
+
     if direita == sp.oo:
         fim = "+∞)"
     else:
@@ -367,39 +367,39 @@ def formatar_intervalo(intervalo):
             valor_dir = int(round(valor_dir))
         elif abs(valor_dir) < 1000:
             valor_dir = round(valor_dir, 4).rstrip('0').rstrip('.') if '.' in str(round(valor_dir, 4)) else round(valor_dir, 4)
-        
+
         fim = f"{valor_dir}]" if not intervalo.right_open else f"{valor_dir})"
-    
+
     return f"{inicio}, {fim}"
 
 def formatar_conjunto(conjunto):
     if isinstance(conjunto, str):
         return conjunto
-    
+
     if isinstance(conjunto, (sp.Interval, sp.Union)):
         return formatar_intervalo(conjunto)
-    
+
     if conjunto == sp.S.Reals:
         return "ℝ (todos os números reais)"
-    
+
     return str(conjunto)
 
 def explicar_dominio(dominio, func_str):
     if dominio == sp.S.Reals:
         return "Todos os números reais (não há restrições)"
-    
+
     if isinstance(dominio, str):
         return dominio
-    
+
     if "sqrt" in func_str or "**0.5" in func_str:
         return f"O domínio é {formatar_conjunto(dominio)}. As expressões dentro das raízes devem ser não-negativas."
-    
+
     if "/" in func_str or "**-1" in func_str:
         return f"O domínio é {formatar_conjunto(dominio)}. O denominador não pode ser zero."
-    
+
     if "log" in func_str:
         return f"O domínio é {formatar_conjunto(dominio)}. Os argumentos de logaritmos devem ser positivos."
-    
+
     if any(trig in func_str for trig in ["asin", "acos", "atan", "arcsin", "arccos", "arctan"]):
         if "asin" in func_str or "arcsin" in func_str:
             return f"O domínio é {formatar_conjunto(dominio)}. Para arcsen, o argumento deve estar entre -1 e 1."
@@ -409,21 +409,21 @@ def explicar_dominio(dominio, func_str):
             return f"O domínio é {formatar_conjunto(dominio)}. Para tangente, excluem-se os pontos onde cos(x) = 0, ou seja, x = π/2 + n·π, n ∈ ℤ."
         else:
             return f"O domínio é {formatar_conjunto(dominio)}."
-    
+
     return f"O domínio da função é {formatar_conjunto(dominio)}."
 
 def explicar_imagem(imagem, func_str):
     if isinstance(imagem, str):
         return imagem
-    
+
     if "sin" in func_str or "cos" in func_str:
         if imagem == sp.Interval(-1, 1):
             return "A imagem é [-1, 1]. Funções seno e cosseno variam apenas entre -1 e 1."
-    
+
     if "tan" in func_str:
         if "ℝ" in str(imagem):
             return "A imagem é ℝ (todos os números reais). A função tangente pode assumir qualquer valor real."
-    
+
     try:
         if "x**" in func_str:
             if "x**2" in func_str and imagem == sp.Interval(0, sp.oo):
@@ -432,7 +432,7 @@ def explicar_imagem(imagem, func_str):
                 return "A imagem é ℝ (todos os números reais). Esta função polinomial assume todos os valores reais."
     except Exception:
         pass
-    
+
     return f"A imagem da função é {formatar_conjunto(imagem)}."
 
 def calcular_dominio(func, x):
@@ -582,21 +582,21 @@ def calculo_dominio_imagem():
     try:
         func_str = entradadom.get()
         func_str = validar_entrada(func_str)
-        
+
         func = sp.sympify(func_str)
-        
+
         # Calcular domínio e imagem
         dominio = calcular_dominio(func, x)
-        
+
         if isinstance(dominio, str) and "Erro" in dominio:
             imagem = "Não foi possível calcular a imagem devido ao domínio inválido."
         else:
             imagem = calcular_imagem(func, x, dominio)
-        
+
         # Formatar o resultado
         dominio_explicado = explicar_dominio(dominio, func_str)
         imagem_explicada = explicar_imagem(imagem, func_str)
-        
+
         resultado = f"""Resultados:
 ========================
 Função: {func_str}
@@ -607,14 +607,14 @@ Domínio: {formatar_conjunto(dominio)}
 Imagem: {formatar_conjunto(imagem)}
 {imagem_explicada}
 ========================"""
-        
+
         resultado_text_dom.delete("1.0", ctk.END)
         resultado_text_dom.insert(ctk.END, resultado)
-        
+
         # Remover gráfico anterior, se existir
         if 'grafico_label' in globals() and grafico_label is not None:
             grafico_label.destroy()
-        
+
         # Gerar novo gráfico
         try:
             x_vals = np.linspace(-10, 10, 1000)
@@ -628,12 +628,12 @@ Imagem: {formatar_conjunto(imagem)}
             plt.grid(True)
             plt.savefig("grafico.png")
             plt.close()
-            
+
             # Carregar e exibir nova imagem
             img = ctk.CTkImage(Image.open("grafico.png"), size=(400, 300))
             grafico_label = ctk.CTkLabel(master=resultado_text_dom.master, image=img, text="")
             grafico_label.pack(pady=10, after=resultado_text_dom)
-            
+
         except Exception as e:
             print(f"Erro ao gerar gráfico: {e}")
 
@@ -646,7 +646,7 @@ def calculo_integral():
         func_str = entrada_integrais.get()
         x = sp.symbols('x')
         func = sp.sympify(func_str)
-        
+
         limite_inf_str = entrada_limite_inf.get().strip()
         limite_sup_str = entrada_limite_sup.get().strip()
 
@@ -754,7 +754,7 @@ def abrir_explicacao_integral():
     janela_explicacao.title("Explicação sobre Integrais")
     janela_explicacao.geometry("500x300")
 
-    texto_explicacao = """A integral de uma função representa a área sob a curva dessa função em um determinado intervalo. 
+    texto_explicacao = """A integral de uma função representa a área sob a curva dessa função em um determinado intervalo.
 Ela é usada para calcular áreas, volumes e resolver problemas físicos como trabalho e deslocamento.
 
 Fonte: Stewart, James. Cálculo. 8ª edição."""
@@ -859,7 +859,7 @@ class InitialPage(ctk.CTk):
         open_calculator_btn.pack(pady=20)
 
         # Botão para abrir o manual
-        manual_btn = ctk.CTkButton(self, text="Abrir Manual do DDX", 
+        manual_btn = ctk.CTkButton(self, text="Abrir Manual do DDX",
                                     command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'))
         manual_btn.pack(pady=20)
 
@@ -906,7 +906,7 @@ class App(ctk.CTk):
         # --------------------- Aba: Derivadas ---------------------
         frame_deriv = tabview.tab("Derivadas")
         global entradaderiv, entradaponto, resultado_text_deriv
-        
+
         # Botão para abrir a explicação
         botao_explicacao = ctk.CTkButton(frame_deriv, text="O que é Derivada?", command=abrir_explicacao_derivada)
         botao_explicacao.pack(pady=10)
@@ -984,7 +984,7 @@ class App(ctk.CTk):
         # --------------------- Aba: Integrais ---------------------
         frame_int = tabview.tab("Integrais")
         global entrada_integrais, entrada_limite_inf, entrada_limite_sup, resultado_text_integral
-        
+
         # Botão para abrir a explicação
         botao_explicacao = ctk.CTkButton(frame_int, text="O que é Integral?", command=abrir_explicacao_integral)
         botao_explicacao.pack(pady=10)
@@ -1007,7 +1007,7 @@ class App(ctk.CTk):
         # --------------------- Aba: Manual ---------------------
         frame_man = tabview.tab("Manual"
                                 )
-        manual_btn = ctk.CTkButton(frame_man, text="Manual do DDX", 
+        manual_btn = ctk.CTkButton(frame_man, text="Manual do DDX",
                                    command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'))
         manual_btn.pack(pady=10)
 # =============================================================================
