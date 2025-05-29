@@ -179,7 +179,7 @@ def ajustar_amostragem(lower, upper, num_points_base=200):
         return np.linspace(lower, upper, num_points_base)
     return np.linspace(lower, upper, min(num_points_base * 2, 800))
 
-# Função principal revisada
+# Função principal do gráfico
 def plot_grafico():
     global resultado_text_grafico, entrada_grafico, intervalo, show_points_var
     try:
@@ -223,7 +223,7 @@ def plot_grafico():
                 for asy in vertical_asymptotes:
                     asy_val = float(asy.evalf())
                     if lower < asy_val < upper:
-                        ax.axvline(asy_val, color='magenta', linestyle='--', linewidth=1.5)
+                        ax.axvline(asy_val, color='magenta', linestyle='--', linewidth=2)
                         result_text += f'Assíntota vertical em x = {asy_val:.2f}\n'
             except Exception as e:
                 print(f"Erro ao calcular assíntotas verticais: {e}")
@@ -235,7 +235,7 @@ def plot_grafico():
                 for lim, side in [(lim_neg, '-∞'), (lim_pos, '+∞')]:
                     if lim.is_real and not lim.has(sp.oo, sp.zoo):
                         lim_val = float(lim.evalf())
-                        ax.axhline(lim_val, color='cyan', linestyle='--', linewidth=1.5)
+                        ax.axhline(lim_val, color='cyan', linestyle='--', linewidth=2)
                         result_text += f'Assíntota horizontal em y = {lim_val:.2f} (limite em {side})\n'
             except Exception as e:
                 print(f"Erro ao calcular assíntotas horizontais: {e}")
@@ -327,7 +327,7 @@ sp.init_printing()
 x = sp.symbols('x')
 n = sp.symbols('n', integer=True)  # Adicionado para representar inteiros em restrições periódicas
 
-# Funções auxiliares (mantidas iguais, exceto por pequenas otimizações)
+# Funções auxiliares
 def validar_entrada(func_str):
     pattern = r'^[a-zA-Z0-9\s+\-*/().^sincoslogexp]+$'
     if not re.match(pattern, func_str):
