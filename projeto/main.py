@@ -3,6 +3,7 @@ import tkinter.messagebox as messagebox
 import webbrowser
 import sympy as sp
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
 import re
 from PIL import Image
@@ -10,6 +11,7 @@ from functools import lru_cache
 from scipy.optimize import fsolve
 
 
+matplotlib.use("TkAgg")
 # Configuração do tema (dark, light ou system)
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
