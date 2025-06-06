@@ -9,6 +9,8 @@ import re
 from PIL import Image
 from functools import lru_cache
 from scipy.optimize import fsolve
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+
 
 
 matplotlib.use("TkAgg")
@@ -17,7 +19,12 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("green")
 
 # Fonte padrão para os widgets
-font = ("Arial", 14)
+font = ("Segoe UI", 14)
+
+# Configurações globais
+sp.init_printing()
+x = sp.symbols('x')
+n = sp.symbols('n', integer=True) 
 
 
 def calculo_derivada():
@@ -183,9 +190,13 @@ def ajustar_amostragem(lower, upper, num_points_base=200):
 
 # Função principal do gráfico
 def plot_grafico():
-    global resultado_text_grafico, entrada_grafico, intervalo, show_points_var
+    global resultado_text_grafico, entrada_grafico, intervalo, show_points_var, grafico_canvas, grafico_toolbar, frame_grafico_container
     try:
-        # Configuração do estilo
+        # Limpar gráfico anterior
+        if frame_grafico_container:
+            for widget in frame_grafico_container.winfo_children():
+                widget.destroy()
+
         plt.style.use('ggplot')
         plt.rcParams.update({
             'font.size': 12,
@@ -194,19 +205,15 @@ def plot_grafico():
             'legend.fontsize': 12
         })
 
-        # Validação de entrada
         func_str = entrada_grafico.get()
         intervalo_str = intervalo.get()
         func_list, lower, upper = validar_entrada_grafico(func_str, intervalo_str)
 
-        # Conversão das funções
         func_sym_list = [sp.sympify(f) for f in func_list]
         func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_sym_list]
 
-        # Ajuste da amostragem
         x_vals = ajustar_amostragem(lower, upper)
 
-        # Criação do gráfico
         fig, ax = plt.subplots(figsize=(10, 6))
         result_text = ""
 
@@ -292,7 +299,6 @@ def plot_grafico():
             else:
                 result_text += "Pontos não explicitados (checkbox desativado).\n"
 
-            # Intervalos de crescimento e decrescimento
             growth_points = sorted([lower] + cp + [upper])
             for i in range(len(growth_points) - 1):
                 mid = (growth_points[i] + growth_points[i+1]) / 2
@@ -307,7 +313,6 @@ def plot_grafico():
                 except Exception:
                     continue
 
-        # Configurações finais do gráfico
         ax.axhline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
         ax.axvline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
         ax.set_xlabel('x', fontsize=14)
@@ -315,7 +320,16 @@ def plot_grafico():
         ax.set_title('Gráfico das Funções', fontsize=18, fontweight='bold')
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         plt.tight_layout()
-        plt.show()
+
+        canvas = FigureCanvasTkAgg(fig, master=frame_grafico_container)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+        grafico_canvas = canvas
+
+        toolbar = NavigationToolbar2Tk(canvas, frame_grafico_container)
+        toolbar.update()
+        toolbar.pack()
+        grafico_toolbar = toolbar
 
         resultado_text_grafico.delete("1.0", ctk.END)
         resultado_text_grafico.insert(ctk.END, result_text + "\nGráfico plotado com sucesso!")
@@ -324,10 +338,7 @@ def plot_grafico():
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico: {str(e)}")
 
 
-# Configurações globais
-sp.init_printing()
-x = sp.symbols('x')
-n = sp.symbols('n', integer=True)  # Adicionado para representar inteiros em restrições periódicas
+ 
 
 # Funções auxiliares
 def validar_entrada(func_str):
@@ -835,187 +846,242 @@ class ModernEntry(ctk.CTkEntry):
 
 # Cria um rótulo e uma entrada logo abaixo
 def labeled_input(parent, label_text):
-    label = ctk.CTkLabel(parent, text=label_text, font=font)
-    label.pack(padx=10, pady=(10, 0), anchor="w")
-    entry = ModernEntry(parent, width=400, height=30, corner_radius=5, font=font)
-    entry.pack(padx=10, pady=(0,10))
+    frame = ctk.CTkFrame(parent)
+    frame.pack(anchor="w", pady=5, padx=5, fill="x")
+
+    label = ctk.CTkLabel(frame, text=label_text, font=font)
+    label.pack(anchor="w", padx=5)
+
+    entry = ctk.CTkEntry(frame, width=400, height=30, corner_radius=5, font=font)
+    entry.pack(padx=5, pady=5, anchor="w")
+
     return entry
 
-def botao(pai, func, texto):
-    btn = ctk.CTkButton(pai, text=texto, command=func, width=200, corner_radius=5, font=font)
-    btn.pack(pady=10, padx=10)
 
-# =============================================================================
-#   CLASSE PRINCIPAL DA APLICAÇÃO
-# =============================================================================
+def botao(parent, func, texto):
+    btn = ctk.CTkButton(parent, text=texto, command=func, width=200, corner_radius=5, font=font)
+    btn.pack(pady=5, padx=5, anchor="w")
 
+
+def validar_expressao_em_tempo_real(entry_widget):
+    try:
+        expr = entry_widget.get()
+        sp.sympify(expr)
+        entry_widget.configure(border_color="green")
+    except Exception:
+        entry_widget.configure(border_color="red")
+
+def aplicar_validacao_em_tempo_real(entry_widget):
+    var = ctk.StringVar()
+    entry_widget.configure(textvariable=var)
+    var.trace_add("write", lambda *args: validar_expressao_em_tempo_real(entry_widget))
+
+
+# ====================== TELA INICIAL =========================
 class InitialPage(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Página Inicial")
-        self.geometry("400x200")
+        self.geometry("500x300")
+        self.resizable(False, False)
         self.configure(padx=20, pady=20)
 
-        # Botão para abrir a calculadora
-        open_calculator_btn = ctk.CTkButton(self, text="Abrir Calculadora DDX", command=self.open_calculator)
-        open_calculator_btn.pack(pady=20)
+        ctk.CTkLabel(self, text="Bem-vindo à Calculadora DDX", font=("Segoe UI", 20, "bold")).pack(pady=20)
 
-        # Botão para abrir o manual
-        manual_btn = ctk.CTkButton(self, text="Abrir Manual do DDX",
-                                    command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'))
-        manual_btn.pack(pady=20)
+        open_calculator_btn = ctk.CTkButton(self, text="Abrir Calculadora DDX", command=self.open_calculator, width=250)
+        open_calculator_btn.pack(pady=10)
+
+        manual_btn = ctk.CTkButton(
+            self,
+            text="Abrir Manual do DDX",
+            command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'),
+            width=250
+        )
+        manual_btn.pack(pady=10)
 
     def open_calculator(self):
-        self.destroy()  # Fecha a página inicial
-        app = App()  # Inicia a aplicação principal
+        self.destroy()
+        app = App()
         app.mainloop()
 
 
+# ====================== APLICAÇÃO PRINCIPAL =========================
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Calculadora DDX")
-        self.geometry("1200x900")
-        self.configure(padx=20, pady=20)
+        self.geometry("1400x800")
+        self.minsize(1000, 700)
+
         self.create_widgets()
 
     def create_widgets(self):
-        # Cria uma Tabview para organizar as funcionalidades
-        tabview = ctk.CTkTabview(self, width=1100, height=700)
-        tabview.pack(padx=20, pady=20, fill="both", expand=True)
-        tabview.add("Domínio e Imagem")
-        tabview.add("Derivadas")
-        tabview.add("Limites")
-        tabview.add("Raiz")
-        tabview.add("Gráficos")
-        tabview.add("Integrais")
-        tabview.add("Manual")
+        tabview = ctk.CTkTabview(self)
+        tabview.pack(padx=10, pady=10, fill="both", expand=True)
 
-        # --------------------- Aba: Domínio e Imagem ---------------------
-        frame_dom = tabview.tab("Domínio e Imagem")
+        abas = ["Domínio e Imagem", "Derivadas", "Limites", "Raiz", "Gráficos", "Integrais", "Manual"]
+        frames = {aba: tabview.add(aba) for aba in abas}
+
+        self.aba_dominio(frames["Domínio e Imagem"])
+        self.aba_derivadas(frames["Derivadas"])
+        self.aba_limites(frames["Limites"])
+        self.aba_raiz(frames["Raiz"])
+        self.aba_graficos(frames["Gráficos"])
+        self.aba_integrais(frames["Integrais"])
+        self.aba_manual(frames["Manual"])
+
+    # ====================== ESTRUTURA PADRÃO DAS ABAS =========================
+    def estrutura_aba(self, frame):
+        container = ctk.CTkFrame(frame)
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+
+        left_frame = ctk.CTkFrame(container)
+        left_frame.pack(side="left", fill="y", padx=10, pady=10)
+
+        right_frame = ctk.CTkFrame(container)
+        right_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+
+        return left_frame, right_frame
+
+    # ====================== ABA DOMÍNIO =========================
+    def aba_dominio(self, frame):
         global entradadom, resultado_text_dom
+        left, right = self.estrutura_aba(frame)
 
-        # Botão para abrir a explicação
-        botao_explicacao = ctk.CTkButton(frame_dom, text="O que são Domínios e Imagens?", command=abrir_explicacao_dominios)
-        botao_explicacao.pack(pady=10)
+        ctk.CTkButton(left, text="O que são Domínios e Imagens?", command=abrir_explicacao_dominios).pack(pady=5, anchor="w")
 
-        entradadom = labeled_input(frame_dom, "Expressão:")
-        botao(frame_dom, calculo_dominio_imagem, "Calcular")
-        botao(frame_dom, exemplo_dominio_imagem, "Exemplo")
-        resultado_text_dom = ctk.CTkTextbox(frame_dom, height=200, width=600, font=font)
-        resultado_text_dom.pack(padx=10, pady=10)
+        entradadom = labeled_input(left, "Expressão:")
+        aplicar_validacao_em_tempo_real(entradadom)
+        botao(left, calculo_dominio_imagem, "Calcular")
+        botao(left, exemplo_dominio_imagem, "Exemplo")
 
-        # --------------------- Aba: Derivadas ---------------------
-        frame_deriv = tabview.tab("Derivadas")
+        resultado_text_dom = ctk.CTkTextbox(right, font=font)
+        resultado_text_dom.pack(fill="both", expand=True)
+
+    # ====================== ABA DERIVADAS =========================
+    def aba_derivadas(self, frame):
         global entradaderiv, entradaponto, resultado_text_deriv
+        left, right = self.estrutura_aba(frame)
 
-        # Botão para abrir a explicação
-        botao_explicacao = ctk.CTkButton(frame_deriv, text="O que é Derivada?", command=abrir_explicacao_derivada)
-        botao_explicacao.pack(pady=10)
+        ctk.CTkButton(left, text="O que é Derivada?", command=abrir_explicacao_derivada).pack(pady=5, anchor="w")
 
-        entradaderiv = labeled_input(frame_deriv, "Função:")
-        entradaponto = labeled_input(frame_deriv, "Ponto:")
-        botao(frame_deriv, calculo_derivada, "Calcular")
-        botao(frame_deriv, exemplo_derivada, "Exemplo")
-        botao(frame_deriv, plot_func_tangente, "Plotar Tangente")
-        resultado_text_deriv = ctk.CTkTextbox(frame_deriv, height=200, width=600, font=font)
-        resultado_text_deriv.pack(padx=10, pady=10)
+        entradaderiv = labeled_input(left, "Função:")
+        aplicar_validacao_em_tempo_real(entradaderiv)
+        entradaponto = labeled_input(left, "Ponto:")
 
-        #Carregar a imagem
-        imagem_deriv = ctk.CTkImage(light_image=Image.open("deriva.png"), size=(200, 100))
+        botao(left, calculo_derivada, "Calcular")
+        botao(left, exemplo_derivada, "Exemplo")
+        botao(left, plot_func_tangente, "Plotar Tangente")
 
-        # Criar label para exibir a imagem
-        label_imagem = ctk.CTkLabel(frame_deriv, image=imagem_deriv, text="")
-        label_imagem.pack(pady=10)
+        resultado_text_deriv = ctk.CTkTextbox(right, font=font)
+        resultado_text_deriv.pack(fill="both", expand=True)
 
-        # --------------------- Aba: Limites ---------------------
-        frame_lim = tabview.tab("Limites")
+        img = ctk.CTkImage(Image.open("deriva.png"), size=(250, 120))
+        ctk.CTkLabel(right, image=img, text="").pack(pady=10)
+
+    # ====================== ABA LIMITES =========================
+    def aba_limites(self, frame):
         global entradalimit, entradavar, entradatend, direcao_var, resultado_text_limite
+        left, right = self.estrutura_aba(frame)
 
-        # Botão para abrir a explicação
-        botao_explicacao = ctk.CTkButton(frame_lim, text="O que são Limites?", command=abrir_explicacao_limites)
-        botao_explicacao.pack(pady=10)
+        ctk.CTkButton(left, text="O que são Limites?", command=abrir_explicacao_limites).pack(pady=5, anchor="w")
 
-        entradalimit = labeled_input(frame_lim, "Função:")
-        entradavar = labeled_input(frame_lim, "Variável:")
-        entradatend = labeled_input(frame_lim, "Tendendo a:")
+        entradalimit = labeled_input(left, "Função:")
+        aplicar_validacao_em_tempo_real(entradalimit)
+        entradavar = labeled_input(left, "Variável:")
+        entradatend = labeled_input(left, "Tendendo a:")
+        aplicar_validacao_em_tempo_real(entradatend)
+
         direcao_var = ctk.StringVar(value="Ambos")
-        option_menu = ctk.CTkOptionMenu(frame_lim, variable=direcao_var, values=["Esquerda", "Direita", "Ambos"])
-        option_menu.pack(pady=10)
-        botao(frame_lim, calculo_limite, "Calcular")
-        botao(frame_lim, exemplo_limite, "Exemplo")
-        resultado_text_limite = ctk.CTkTextbox(frame_lim, height=200, width=600, font=font)
-        resultado_text_limite.pack(padx=10, pady=10)
+        ctk.CTkOptionMenu(left, variable=direcao_var, values=["Esquerda", "Direita", "Ambos"]).pack(pady=5, anchor="w")
 
-        #Carregar a imagem
-        imagem_lim = ctk.CTkImage(light_image=Image.open("limit.png"), size=(200, 100))
+        botao(left, calculo_limite, "Calcular")
+        botao(left, exemplo_limite, "Exemplo")
 
-        # Criar label para exibir a imagem
-        label_imagem = ctk.CTkLabel(frame_lim, image=imagem_lim, text="")
-        label_imagem.pack(pady=10)
+        resultado_text_limite = ctk.CTkTextbox(right, font=font)
+        resultado_text_limite.pack(fill="both", expand=True)
 
-        # --------------------- Aba: Raiz ---------------------
-        frame_raiz = tabview.tab("Raiz")
+        img = ctk.CTkImage(Image.open("limit.png"), size=(250, 120))
+        ctk.CTkLabel(right, image=img, text="").pack(pady=10)
+
+    # ====================== ABA RAIZ =========================
+    def aba_raiz(self, frame):
         global entradaraiz, entradaindice, resultado_text_raiz
-        entradaraiz = labeled_input(frame_raiz, "Número:")
-        entradaindice = labeled_input(frame_raiz, "Índice:")
-        botao(frame_raiz, raiz, "Calcular")
-        botao(frame_raiz, exemplo_raiz, "Exemplo")
-        resultado_text_raiz = ctk.CTkTextbox(frame_raiz, height=200, width=600, font=font)
-        resultado_text_raiz.pack(padx=10, pady=10)
+        left, right = self.estrutura_aba(frame)
 
-        #Carregar a imagem
-        imagem_raiz = ctk.CTkImage(light_image=Image.open("raiz.png"), size=(200, 100))
+        entradaraiz = labeled_input(left, "Número:")
+        aplicar_validacao_em_tempo_real(entradaraiz)
+        entradaindice = labeled_input(left, "Índice:")
+        aplicar_validacao_em_tempo_real(entradaindice)
 
-        # Criar label para exibir a imagem
-        label_imagem = ctk.CTkLabel(frame_raiz, image=imagem_raiz, text="")
-        label_imagem.pack(pady=10)
+        botao(left, raiz, "Calcular")
+        botao(left, exemplo_raiz, "Exemplo")
 
-        # --------------------- Aba: Gráficos ---------------------
-        frame_graf = tabview.tab("Gráficos")
-        global entrada_grafico, intervalo, show_points_var, resultado_text_grafico
-        entrada_grafico = labeled_input(frame_graf, "Função:")
-        intervalo = labeled_input(frame_graf, "Intervalo (ex: -10,10):")
+        resultado_text_raiz = ctk.CTkTextbox(right, font=font)
+        resultado_text_raiz.pack(fill="both", expand=True)
+
+        img = ctk.CTkImage(Image.open("raiz.png"), size=(250, 120))
+        ctk.CTkLabel(right, image=img, text="").pack(pady=10)
+
+    # ====================== ABA GRÁFICOS =========================
+    def aba_graficos(self, frame):
+        global entrada_grafico, intervalo, show_points_var, resultado_text_grafico, frame_grafico_container
+
+        left, right = self.estrutura_aba(frame)
+
+        entrada_grafico = labeled_input(left, "Função:")
+        aplicar_validacao_em_tempo_real(entrada_grafico)
+
+        intervalo = labeled_input(left, "Intervalo (ex: -10,10):")
+        aplicar_validacao_em_tempo_real(intervalo)
+
         show_points_var = ctk.BooleanVar(value=False)
-        chk = ctk.CTkCheckBox(frame_graf, text="Mostrar pontos críticos e de inflexão", variable=show_points_var)
-        chk.pack(pady=10)
-        botao(frame_graf, plot_grafico, "Plotar")
-        resultado_text_grafico = ctk.CTkTextbox(frame_graf, height=200, width=600, font=font)
-        resultado_text_grafico.pack(padx=10, pady=10)
+        ctk.CTkCheckBox(left, text="Mostrar pontos críticos e de inflexão", variable=show_points_var).pack(pady=5, anchor="w")
 
-        # --------------------- Aba: Integrais ---------------------
-        frame_int = tabview.tab("Integrais")
+        botao(left, plot_grafico, "Plotar")
+
+        resultado_text_grafico = ctk.CTkTextbox(right, font=font, height=150)
+        resultado_text_grafico.pack(fill="x", pady=(0, 10))
+
+        # Frame onde o gráfico será embutido
+        frame_grafico_container = ctk.CTkFrame(right)
+        frame_grafico_container.pack(fill="both", expand=True)
+
+
+    # ====================== ABA INTEGRAIS =========================
+    def aba_integrais(self, frame):
         global entrada_integrais, entrada_limite_inf, entrada_limite_sup, resultado_text_integral
+        left, right = self.estrutura_aba(frame)
 
-        # Botão para abrir a explicação
-        botao_explicacao = ctk.CTkButton(frame_int, text="O que é Integral?", command=abrir_explicacao_integral)
-        botao_explicacao.pack(pady=10)
+        ctk.CTkButton(left, text="O que é Integral?", command=abrir_explicacao_integral).pack(pady=5, anchor="w")
 
-        entrada_integrais = labeled_input(frame_int, "Função:")
-        entrada_limite_inf = labeled_input(frame_int, "Limite inferior:")
-        entrada_limite_sup = labeled_input(frame_int, "Limite superior:")
-        botao(frame_int, calculo_integral, "Calcular")
-        botao(frame_int, exemplo_integral, "Exemplo")
-        resultado_text_integral = ctk.CTkTextbox(frame_int, height=200, width=600, font=font)
-        resultado_text_integral.pack(padx=10, pady=10)
+        entrada_integrais = labeled_input(left, "Função:")
+        aplicar_validacao_em_tempo_real(entrada_integrais)
+        entrada_limite_inf = labeled_input(left, "Limite inferior:")
+        aplicar_validacao_em_tempo_real(entrada_limite_inf)
+        entrada_limite_sup = labeled_input(left, "Limite superior:")
+        aplicar_validacao_em_tempo_real(entrada_limite_sup)
 
-        #Carregar a imagem
-        imagem_integral = ctk.CTkImage(light_image=Image.open("integral.png"), size=(300, 200))
+        botao(left, calculo_integral, "Calcular")
+        botao(left, exemplo_integral, "Exemplo")
 
-        # Criar label para exibir a imagem
-        label_imagem = ctk.CTkLabel(frame_int, image=imagem_integral, text="")
-        label_imagem.pack(pady=10)
+        resultado_text_integral = ctk.CTkTextbox(right, font=font)
+        resultado_text_integral.pack(fill="both", expand=True)
 
-        # --------------------- Aba: Manual ---------------------
-        frame_man = tabview.tab("Manual"
-                                )
-        manual_btn = ctk.CTkButton(frame_man, text="Manual do DDX",
-                                   command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'))
-        manual_btn.pack(pady=10)
-# =============================================================================
-#   EXECUÇÃO DA APLICAÇÃO
-# =============================================================================
+        img = ctk.CTkImage(Image.open("integral.png"), size=(300, 180))
+        ctk.CTkLabel(right, image=img, text="").pack(pady=10)
 
+    # ====================== ABA MANUAL =========================
+    def aba_manual(self, frame):
+        ctk.CTkButton(
+            frame,
+            text="Abrir Manual do DDX",
+            command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'),
+            width=300
+        ).pack(pady=20)
+
+
+# ====================== EXECUÇÃO =========================
 if __name__ == "__main__":
     initial_page = InitialPage()
     initial_page.mainloop()
