@@ -104,27 +104,6 @@ def raiz():
     except ValueError:
         messagebox.showerror("Erro", "Por favor, forneça um índice e/ou número válido para calcular a raiz.")
 
-def numerical_roots(sym_expr, var, lower, upper, num_points=500):
-    func_num = sp.lambdify(var, sym_expr, 'numpy')
-    sample_points = np.linspace(lower, upper, num_points)
-    roots = []
-    for i in range(len(sample_points) - 1):
-        a = sample_points[i]
-        b = sample_points[i + 1]
-        fa = func_num(a)
-        fb = func_num(b)
-        if fa == 0:
-            if lower <= a <= upper and not any(abs(a - r) < 1e-5 for r in roots):
-                roots.append(a)
-        elif fa * fb < 0:
-            try:
-                r = sp.nsolve(sym_expr, a)
-                r_val = float(r.evalf())
-                if lower <= r_val <= upper and not any(abs(r_val - rr) < 1e-5 for rr in roots):
-                    roots.append(r_val)
-            except Exception:
-                pass
-    return roots
 
 # Funções auxiliares
 def validar_entrada_grafico(func_str, intervalo_str):
@@ -172,7 +151,6 @@ def numerical_roots(expr, var, a, b, num_points=500):
         try:
             val1, val2 = expr_func(x_vals[i]), expr_func(x_vals[i+1])
             if np.isfinite(val1) and np.isfinite(val2) and np.sign(val1) * np.sign(val2) < 0:
-                # Corrigido: Extraímos explicitamente o primeiro elemento do array retornado por fsolve
                 root_array = fsolve(lambda x: float(expr_func(x)) if np.isfinite(float(expr_func(x))) else 0,
                                     (x_vals[i] + x_vals[i+1])/2)
                 root = float(root_array[0])  # Pegamos o primeiro elemento do array
@@ -368,7 +346,8 @@ def formatar_intervalo(intervalo):
         if abs(valor_esq - round(valor_esq)) < 1e-10:
             valor_esq = int(round(valor_esq))
         elif abs(valor_esq) < 1000:
-            valor_esq = round(valor_esq, 4).rstrip('0').rstrip('.') if '.' in str(round(valor_esq, 4)) else round(valor_esq, 4)
+            valor_esq_str = str(round(valor_esq, 4))
+            valor_esq = valor_esq_str.rstrip('0').rstrip('.') if '.' in valor_esq_str else valor_esq_str
 
         inicio = f"[{valor_esq}" if not intervalo.left_open else f"({valor_esq}"
 
@@ -379,11 +358,13 @@ def formatar_intervalo(intervalo):
         if abs(valor_dir - round(valor_dir)) < 1e-10:
             valor_dir = int(round(valor_dir))
         elif abs(valor_dir) < 1000:
-            valor_dir = round(valor_dir, 4).rstrip('0').rstrip('.') if '.' in str(round(valor_dir, 4)) else round(valor_dir, 4)
+            valor_dir_str = str(round(valor_dir, 4))
+            valor_dir = valor_dir_str.rstrip('0').rstrip('.') if '.' in valor_dir_str else valor_dir_str
 
         fim = f"{valor_dir}]" if not intervalo.right_open else f"{valor_dir})"
 
     return f"{inicio}, {fim}"
+
 
 def formatar_conjunto(conjunto):
     if isinstance(conjunto, str):
@@ -395,7 +376,12 @@ def formatar_conjunto(conjunto):
     if conjunto == sp.S.Reals:
         return "ℝ (todos os números reais)"
 
+    # Para floats, converte para string simples
+    if isinstance(conjunto, float):
+        return str(conjunto)
+
     return str(conjunto)
+
 
 def explicar_dominio(dominio, func_str):
     if dominio == sp.S.Reals:
@@ -449,44 +435,49 @@ def explicar_imagem(imagem, func_str):
     return f"A imagem da função é {formatar_conjunto(imagem)}."
 
 def calcular_dominio(func, x):
-    """Calcula o domínio de uma função usando métodos analíticos e numéricos."""
+    """Calcula o domínio de uma função usando métodos analíticos e numéricos, com suporte robusto a divisões."""
     try:
-        denominadores = [atom.base for atom in func.atoms(sp.Pow) if atom.exp < 0]
-        raizes = [atom.base for atom in func.atoms(sp.Pow) if 0 < atom.exp < 1 and atom.base.has(x)]
-        logs = [arg for arg in func.atoms(sp.log) if arg.has(x)]
-        trig_restricoes = []
+        # Obter denominador completo da função
+        numerador, denominador = func.as_numer_denom()
 
-        # Tratar funções trigonométricas
-        if func.has(sp.tan) or func.has(sp.cot) or func.has(sp.sec) or func.has(sp.csc):
-            # Para tangente e funções relacionadas, o domínio exclui x = π/2 + n·π
-            pontos_base = [sp.pi/2]
-            if func.has(sp.cot) or func.has(sp.csc):
-                pontos_base = [0]  # Para cotangente e cossecante, exclui onde sin(x) = 0
-            dominio_periodico = sp.S.Reals - sp.FiniteSet(*[p + n*sp.pi for p in pontos_base for n in range(-10, 11)])  # Aproximação para n
-            return f"ℝ - {{x | x = {pontos_base[0]} + n·π, n ∈ ℤ}}"
-
-        # Restrições normais (não trigonométricas)
+        # Obter raízes de denominador (restrição: denom ≠ 0)
         restricoes = []
-        for denom in denominadores:
-            restricoes.extend(sp.solve(denom, x))
+        if denominador != 1:
+            restricoes.extend(sp.solve(denominador, x))
+
+        # Raízes de radicais pares
+        raizes = [atom.base for atom in func.atoms(sp.Pow) if 0 < atom.exp < 1 and atom.base.has(x)]
         for raiz in raizes:
             restricoes.extend(sp.solve(raiz < 0, x))
+
+        # Argumentos de logaritmos (log(x) → x > 0)
+        logs = [arg for arg in func.atoms(sp.log) if arg.has(x)]
         for log_arg in logs:
             restricoes.extend(sp.solve(log_arg <= 0, x))
+
+        # Funções trigonométricas com descontinuidades
+        if func.has(sp.tan) or func.has(sp.cot) or func.has(sp.sec) or func.has(sp.csc):
+            pontos_base = []
+            if func.has(sp.tan) or func.has(sp.sec):
+                pontos_base = [sp.pi/2]
+            elif func.has(sp.cot) or func.has(sp.csc):
+                pontos_base = [0]
+            restricoes.extend([p + n*sp.pi for p in pontos_base for n in range(-10, 11)])
 
         if not restricoes:
             return sp.S.Reals
 
+        # Filtrar apenas valores reais e finitos
         pontos_exclusao = [float(p.evalf()) for p in restricoes if p.is_real and not p.has(sp.oo, -sp.oo)]
-        pontos_exclusao.sort()
+        pontos_exclusao = sorted(set(pontos_exclusao))  # Remove duplicatas e ordena
 
         intervalos = []
         if pontos_exclusao:
-            if -float('inf') not in pontos_exclusao:
+            if pontos_exclusao[0] > -float('inf'):
                 intervalos.append(sp.Interval.open(-float('inf'), pontos_exclusao[0]))
             for i in range(len(pontos_exclusao)-1):
                 intervalos.append(sp.Interval.open(pontos_exclusao[i], pontos_exclusao[i+1]))
-            if float('inf') not in pontos_exclusao:
+            if pontos_exclusao[-1] < float('inf'):
                 intervalos.append(sp.Interval.open(pontos_exclusao[-1], float('inf')))
 
         return sp.Union(*intervalos) if intervalos else sp.S.Reals
@@ -494,23 +485,67 @@ def calcular_dominio(func, x):
     except Exception as e:
         return f"Erro ao calcular o domínio: {str(e)}"
 
+
 def calcular_imagem(func, x, dominio):
     try:
         func_str = str(func)
 
+        # Casos especiais
         if func_str.strip() in ['sin(x)', 'cos(x)']:
             return sp.Interval(-1, 1)
-        if 'tan(x)' == func_str.strip() or 'cot(x)' == func_str.strip():
+        if func_str.strip() in ['tan(x)', 'cot(x)']:
             return sp.S.Reals
-        if 'sec(x)' == func_str.strip() or 'csc(x)' == func_str.strip():
+        if func_str.strip() in ['sec(x)', 'csc(x)']:
             return sp.Union(sp.Interval.open(-sp.oo, -1), sp.Interval.open(1, sp.oo))
-        if 'exp(x)' == func_str.strip():
+        if func_str.strip() == 'exp(x)':
             return sp.Interval.open(0, sp.oo)
-        if 'exp(-x)' == func_str.strip():
+        if func_str.strip() == 'exp(-x)':
             return sp.Interval.open(0, 1)
-        if 'log(x)' == func_str.strip():
+        if func_str.strip() == 'log(x)':
             return sp.S.Reals
 
+        # Detectar racional do tipo f(x) = constante / g(x) + c
+        try:
+            numer, denom = func.as_numer_denom()
+
+            if denom.has(x) and not denom.has(sp.sin, sp.cos, sp.tan):
+                # Verificar se f(x) = (k / g(x)) + c
+                deslocamento = 0
+                racional_puro = False
+
+                if numer.is_constant():
+                    deslocamento = 0
+                    racional_puro = True
+                else:
+                    # Tentar separar em forma (k/g(x)) + c
+                    if isinstance(func, sp.Add):
+                        for termo in func.args:
+                            if not termo.has(x):
+                                deslocamento += float(termo)
+                            else:
+                                num_t, den_t = termo.as_numer_denom()
+                                if not num_t.is_constant():
+                                    racional_puro = False
+                                else:
+                                    racional_puro = True
+                    elif isinstance(func, sp.Sub):
+                        termos = func.as_ordered_terms()
+                        if len(termos) == 2:
+                            if not termos[1].has(x):
+                                deslocamento -= float(termos[1])
+                                num_t, den_t = termos[0].as_numer_denom()
+                                if num_t.is_constant():
+                                    racional_puro = True
+
+                if racional_puro:
+                    return sp.Union(
+                        sp.Interval.open(-sp.oo, deslocamento),
+                        sp.Interval.open(deslocamento, sp.oo)
+                    )
+        except Exception:
+            pass
+
+        # Polinômio de grau ímpar assume todos os reais
         try:
             poly = sp.Poly(func, x)
             if poly.degree() % 2 == 1:
@@ -518,16 +553,7 @@ def calcular_imagem(func, x, dominio):
         except Exception:
             pass
 
-        try:
-            numer, denom = func.as_numer_denom()
-            if denom != 1:
-                poly_numer = sp.Poly(numer, x)
-                poly_denom = sp.Poly(denom, x)
-                if poly_numer.degree() > poly_denom.degree():
-                    return sp.S.Reals
-        except Exception:
-            pass
-
+        # Amostragem numérica para casos gerais
         y_values = []
 
         try:
@@ -536,11 +562,10 @@ def calcular_imagem(func, x, dominio):
             for cp in critical_points:
                 if cp.is_real and not cp.has(sp.oo, -sp.oo):
                     cp_val = float(cp.evalf())
-                    if isinstance(dominio, sp.Interval) or isinstance(dominio, sp.Union):
-                        if dominio.contains(cp_val):
-                            y_val = func.subs(x, cp).evalf()
-                            if y_val.is_real and not y_val.has(sp.oo, sp.zoo, sp.nan):
-                                y_values.append(float(y_val))
+                    if isinstance(dominio, (sp.Interval, sp.Union)) and dominio.contains(cp_val):
+                        y_val = func.subs(x, cp).evalf()
+                        if y_val.is_real and not y_val.has(sp.oo, sp.zoo, sp.nan):
+                            y_values.append(float(y_val))
         except Exception:
             pass
 
@@ -548,8 +573,8 @@ def calcular_imagem(func, x, dominio):
             intervalos = [dominio]
         elif isinstance(dominio, sp.Union):
             intervalos = dominio.args
-        elif isinstance(dominio, str):  # Caso seja uma string (como para tangente)
-            intervalos = [sp.Interval.open(-1000, 1000)]  # Aproximação para teste
+        elif isinstance(dominio, str):
+            intervalos = [sp.Interval.open(-1000, 1000)]  # fallback
         else:
             intervalos = []
 
@@ -575,18 +600,11 @@ def calcular_imagem(func, x, dominio):
         min_val = min(y_values)
         max_val = max(y_values)
 
-        lim_inf = sp.limit(func, x, -sp.oo)
-        lim_sup = sp.limit(func, x, sp.oo)
-
-        if lim_inf == sp.oo or lim_sup == sp.oo:
-            return sp.Interval.open(-sp.oo, sp.oo)
-        elif lim_inf == -sp.oo or lim_sup == -sp.oo:
-            return sp.Interval.open(-sp.oo, sp.oo)
-        else:
-            return sp.Interval(min_val, max_val)
+        return sp.Interval(min_val, max_val)
 
     except Exception as e:
         return f"Erro ao calcular a imagem: {str(e)}"
+
 
 def calculo_dominio_imagem():
     """Função principal que processa a entrada do usuário e calcula domínio e imagem."""
