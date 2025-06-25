@@ -12,7 +12,6 @@ from scipy.optimize import fsolve
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 
-
 matplotlib.use("TkAgg")
 # Configuração do tema (dark, light ou system)
 ctk.set_appearance_mode("dark")
