@@ -10,6 +10,9 @@ from PIL import Image
 from functools import lru_cache
 from scipy.optimize import fsolve
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from sympy.core.relational import Relational
+from sympy.logic.boolalg import BooleanFunction
+
 
 
 matplotlib.use("TkAgg")
@@ -434,52 +437,62 @@ def explicar_imagem(imagem, func_str):
     return f"A imagem da função é {formatar_conjunto(imagem)}."
 
 def calcular_dominio(func, x):
-    """Calcula o domínio de uma função usando métodos analíticos e numéricos, com suporte robusto a divisões."""
     try:
-        # Obter denominador completo da função
-        numerador, denominador = func.as_numer_denom()
+        from sympy import Interval, Union, S, solve, log
+        from sympy.core.relational import Relational, StrictLessThan, LessThan, StrictGreaterThan, GreaterThan
+        from sympy.logic.boolalg import BooleanFunction
 
-        # Obter raízes de denominador (restrição: denom ≠ 0)
-        restricoes = []
-        if denominador != 1:
-            restricoes.extend(sp.solve(denominador, x))
-
-        # Raízes de radicais pares
+        denominadores = [atom.base for atom in func.atoms(sp.Pow) if atom.exp < 0]
         raizes = [atom.base for atom in func.atoms(sp.Pow) if 0 < atom.exp < 1 and atom.base.has(x)]
+        logs = [arg for arg in func.atoms(log) if arg.has(x)]
+
+        restricoes = []
+
+        for denom in denominadores:
+            restricoes.extend(solve(denom, x))
+
         for raiz in raizes:
-            restricoes.extend(sp.solve(raiz < 0, x))
+            sol = solve(raiz < 0, x)
+            if isinstance(sol, (list, tuple, set)):
+                restricoes.extend(sol)
+            elif isinstance(sol, (Relational, BooleanFunction)):
+                restricoes.append(sol)
 
-        # Argumentos de logaritmos (log(x) → x > 0)
-        logs = [arg for arg in func.atoms(sp.log) if arg.has(x)]
         for log_arg in logs:
-            restricoes.extend(sp.solve(log_arg <= 0, x))
+            sol = solve(log_arg > 0, x)
+            if isinstance(sol, (list, tuple, set)):
+                restricoes.extend(sol)
+            elif isinstance(sol, (Relational, BooleanFunction)):
+                restricoes.append(sol)
 
-        # Funções trigonométricas com descontinuidades
-        if func.has(sp.tan) or func.has(sp.cot) or func.has(sp.sec) or func.has(sp.csc):
-            pontos_base = []
-            if func.has(sp.tan) or func.has(sp.sec):
-                pontos_base = [sp.pi/2]
-            elif func.has(sp.cot) or func.has(sp.csc):
-                pontos_base = [0]
-            restricoes.extend([p + n*sp.pi for p in pontos_base for n in range(-10, 11)])
-
+        # Se não houver restrições, retorna os reais
         if not restricoes:
-            return sp.S.Reals
+            return S.Reals
 
-        # Filtrar apenas valores reais e finitos
-        pontos_exclusao = [float(p.evalf()) for p in restricoes if p.is_real and not p.has(sp.oo, -sp.oo)]
-        pontos_exclusao = sorted(set(pontos_exclusao))  # Remove duplicatas e ordena
-
+        # Identifica desigualdades e constrói intervalos diretamente
         intervalos = []
-        if pontos_exclusao:
-            if pontos_exclusao[0] > -float('inf'):
-                intervalos.append(sp.Interval.open(-float('inf'), pontos_exclusao[0]))
-            for i in range(len(pontos_exclusao)-1):
-                intervalos.append(sp.Interval.open(pontos_exclusao[i], pontos_exclusao[i+1]))
-            if pontos_exclusao[-1] < float('inf'):
-                intervalos.append(sp.Interval.open(pontos_exclusao[-1], float('inf')))
 
-        return sp.Union(*intervalos) if intervalos else sp.S.Reals
+        for r in restricoes:
+            if isinstance(r, StrictGreaterThan):
+                intervalos.append(Interval.open(r.lhs.evalf(), sp.oo))
+            elif isinstance(r, GreaterThan):
+                intervalos.append(Interval(r.lhs.evalf(), sp.oo))
+            elif isinstance(r, StrictLessThan):
+                intervalos.append(Interval.open(-sp.oo, r.lhs.evalf()))
+            elif isinstance(r, LessThan):
+                intervalos.append(Interval(-sp.oo, r.lhs.evalf()))
+            elif isinstance(r, (int, float, sp.Number)):
+                # ponto de exclusão
+                intervalos.append(S.Reals - sp.FiniteSet(r))
+
+        # Interseção de todas as restrições válidas
+        if intervalos:
+            dominio = intervalos[0]
+            for i in intervalos[1:]:
+                dominio = dominio.intersect(i)
+            return dominio
+
+        return S.Reals
 
     except Exception as e:
         return f"Erro ao calcular o domínio: {str(e)}"
