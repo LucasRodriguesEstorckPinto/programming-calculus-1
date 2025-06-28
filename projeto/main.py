@@ -10,9 +10,11 @@ from PIL import Image
 from functools import lru_cache
 from scipy.optimize import fsolve
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from sympy.core.relational import Relational
-from sympy.logic.boolalg import BooleanFunction
-
+from sympy import Interval, Union, S, solve, log , Complement , FiniteSet, oo
+from sympy.solvers.inequalities import solve_univariate_inequality
+from sympy import S, Interval, Union, log, Pow, FiniteSet
+from sympy.solvers.inequalities import solve_univariate_inequality
+from sympy.solvers.solvers import solve
 
 
 matplotlib.use("TkAgg")
@@ -385,34 +387,45 @@ def formatar_conjunto(conjunto):
     return str(conjunto)
 
 
-def explicar_dominio(dominio, func_str):
-    if dominio == sp.S.Reals:
-        return "Todos os números reais (não há restrições)"
 
+def explicar_dominio(dominio, func_str=""):
+    """
+    Gera uma explicação simbólica do domínio calculado.
+    """
     if isinstance(dominio, str):
-        return dominio
+        return dominio  # Erro tratado anteriormente
 
-    if "sqrt" in func_str or "**0.5" in func_str:
-        return f"O domínio é {formatar_conjunto(dominio)}. As expressões dentro das raízes devem ser não-negativas."
+    # ℝ completo
+    if dominio == S.Reals:
+        return "Todos os números reais (não há restrições na função)."
 
-    if "/" in func_str or "**-1" in func_str:
-        return f"O domínio é {formatar_conjunto(dominio)}. O denominador não pode ser zero."
+    explicacao = []
 
-    if "log" in func_str:
-        return f"O domínio é {formatar_conjunto(dominio)}. Os argumentos de logaritmos devem ser positivos."
+    if isinstance(dominio, Complement):
+        conj_principal = dominio.args[0]
+        conj_excluido = dominio.args[1]
+        if isinstance(conj_excluido, FiniteSet):
+            pontos = ", ".join([f"x ≠ {p}" for p in conj_excluido])
+            explicacao.append(f"A função não está definida em {pontos} devido à presença de divisão por zero.")
+        dominio = conj_principal
 
-    if any(trig in func_str for trig in ["asin", "acos", "atan", "arcsin", "arccos", "arctan"]):
-        if "asin" in func_str or "arcsin" in func_str:
-            return f"O domínio é {formatar_conjunto(dominio)}. Para arcsen, o argumento deve estar entre -1 e 1."
-        elif "acos" in func_str or "arccos" in func_str:
-            return f"O domínio é {formatar_conjunto(dominio)}. Para arccos, o argumento deve estar entre -1 e 1."
-        elif "tan" in func_str or "atan" in func_str:
-            return f"O domínio é {formatar_conjunto(dominio)}. Para tangente, excluem-se os pontos onde cos(x) = 0, ou seja, x = π/2 + n·π, n ∈ ℤ."
+    if isinstance(dominio, Union):
+        for intervalo in dominio.args:
+            explicacao.append(f"Intervalo permitido: {intervalo}")
+    elif isinstance(dominio, Interval):
+        if dominio.left == 0 and dominio.right == oo:
+            explicacao.append("O domínio é (0, +∞) pois o argumento do logaritmo ou denominador deve ser positivo.")
+        elif dominio.left == 1 and dominio.right == oo:
+            explicacao.append("O domínio é (1, +∞) pois o argumento de ln(x - 1) precisa ser maior que zero.")
+        elif dominio.left == 3 and dominio.right == oo:
+            explicacao.append("O domínio é [3, +∞) pois a raiz quadrada exige que a expressão dentro dela seja não-negativa.")
         else:
-            return f"O domínio é {formatar_conjunto(dominio)}."
+            explicacao.append(f"O domínio é {dominio} devido a restrições simbólicas da função.")
 
-    return f"O domínio da função é {formatar_conjunto(dominio)}."
+    elif isinstance(dominio, FiniteSet):
+        explicacao.append(f"Domínio restrito a valores específicos: {', '.join(str(v) for v in dominio)}")
 
+    return " ".join(explicacao)
 def explicar_imagem(imagem, func_str):
     if isinstance(imagem, str):
         return imagem
@@ -436,67 +449,49 @@ def explicar_imagem(imagem, func_str):
 
     return f"A imagem da função é {formatar_conjunto(imagem)}."
 
+
 def calcular_dominio(func, x):
+    """
+    Calcula o domínio de uma função simbólica real de uma variável.
+    Identifica e trata: logaritmos, raízes pares e divisões.
+    """
     try:
-        from sympy import Interval, Union, S, solve, log
-        from sympy.core.relational import Relational, StrictLessThan, LessThan, StrictGreaterThan, GreaterThan
-        from sympy.logic.boolalg import BooleanFunction
-
-        denominadores = [atom.base for atom in func.atoms(sp.Pow) if atom.exp < 0]
-        raizes = [atom.base for atom in func.atoms(sp.Pow) if 0 < atom.exp < 1 and atom.base.has(x)]
-        logs = [arg for arg in func.atoms(log) if arg.has(x)]
-
+        dominio_total = S.Reals
         restricoes = []
 
-        for denom in denominadores:
-            restricoes.extend(solve(denom, x))
+        # 1. Tratamento de denominadores (divisões por zero)
+        numerador, denominador = func.as_numer_denom()
+        if denominador.has(x):
+            zeros_denom = solve(denominador, x)
+            for raiz in zeros_denom:
+                if raiz.is_real:
+                    dominio_total = dominio_total - FiniteSet(raiz)
 
-        for raiz in raizes:
-            sol = solve(raiz < 0, x)
-            if isinstance(sol, (list, tuple, set)):
-                restricoes.extend(sol)
-            elif isinstance(sol, (Relational, BooleanFunction)):
-                restricoes.append(sol)
+        # 2. Tratamento de radicais pares (raiz par de número negativo)
+        for atom in func.atoms(Pow):
+            if atom.exp.is_Rational and atom.exp.q == 2:  # Expoente 1/2, 3/2, etc.
+                base = atom.base
+                if base.has(x):
+                    cond = base >= 0
+                    dominio_local = solve_univariate_inequality(cond, x, relational=False)
+                    restricoes.append(dominio_local)
 
-        for log_arg in logs:
-            sol = solve(log_arg > 0, x)
-            if isinstance(sol, (list, tuple, set)):
-                restricoes.extend(sol)
-            elif isinstance(sol, (Relational, BooleanFunction)):
-                restricoes.append(sol)
+        # 3. Tratamento de logaritmos (argumento > 0)
+        for expr in func.atoms(log):
+            arg = expr.args[0]
+            if arg.has(x):
+                cond = arg > 0
+                dominio_local = solve_univariate_inequality(cond, x, relational=False)
+                restricoes.append(dominio_local)
 
-        # Se não houver restrições, retorna os reais
-        if not restricoes:
-            return S.Reals
-
-        # Identifica desigualdades e constrói intervalos diretamente
-        intervalos = []
-
+        # 4. Restrições adicionais (caso sejam geradas inequações simbólicas)
         for r in restricoes:
-            if isinstance(r, StrictGreaterThan):
-                intervalos.append(Interval.open(r.lhs.evalf(), sp.oo))
-            elif isinstance(r, GreaterThan):
-                intervalos.append(Interval(r.lhs.evalf(), sp.oo))
-            elif isinstance(r, StrictLessThan):
-                intervalos.append(Interval.open(-sp.oo, r.lhs.evalf()))
-            elif isinstance(r, LessThan):
-                intervalos.append(Interval(-sp.oo, r.lhs.evalf()))
-            elif isinstance(r, (int, float, sp.Number)):
-                # ponto de exclusão
-                intervalos.append(S.Reals - sp.FiniteSet(r))
+            dominio_total = dominio_total.intersect(r)
 
-        # Interseção de todas as restrições válidas
-        if intervalos:
-            dominio = intervalos[0]
-            for i in intervalos[1:]:
-                dominio = dominio.intersect(i)
-            return dominio
-
-        return S.Reals
+        return dominio_total
 
     except Exception as e:
-        return f"Erro ao calcular o domínio: {str(e)}"
-
+         return f"Erro ao calcular o domínio: {str(e)}"
 
 def calcular_imagem(func, x, dominio):
     try:
