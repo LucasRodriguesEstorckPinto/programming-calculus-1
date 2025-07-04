@@ -728,49 +728,76 @@ def plot_func_tangente():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico:")
 
-def aplicar_lhopital(f_str, g_str, ponto_str, direcao='+'):
-    from sympy import limit, sympify, diff, oo, zoo, nan
+def aplicar_lhopital(f_str, g_str, ponto_str, direcao='Ambos'):
+    from sympy import limit, sympify, diff, simplify
     f = sympify(f_str)
     g = sympify(g_str)
     ponto = sympify(ponto_str)
     passos = []
-    i = 0
 
-    # Primeiro, tenta calcular o limite diretamente
-    try:
-        limite_direto = limit(f / g, x, ponto, dir=direcao)
-        if limite_direto.is_real or limite_direto.is_number:
-            passos.append(f"lim(x→{ponto_str}) {f}/{g} = {limite_direto} (direto)")
-            return passos
-    except:
-        passos.append("Não foi possível calcular o limite direto. Aplicando L'Hôpital.")
+    def calcular(expr, lado):
+        return limit(expr, x, ponto, dir=lado)
 
-    # Aplica L'Hôpital iterativamente se o limite direto falhar
-    while True:
+    lados = ["+"] if direcao in ["+"] else ["-"] if direcao == "-" else ["+", "-"]
+
+    for lado in lados:
+        passos.append(f"Analisando limite lateral: {'direita' if lado == '+' else 'esquerda'}")
+
         try:
-            limite_num = limit(f, x, ponto, dir=direcao)
-            limite_den = limit(g, x, ponto, dir=direcao)
-        except:
-            passos.append("Erro ao calcular os limites.")
-            break
+            lim_f = calcular(f, lado)
+            lim_g = calcular(g, lado)
+            passos.append(f"  lim(x→{ponto}{lado}) {f} = {lim_f}")
+            passos.append(f"  lim(x→{ponto}{lado}) {g} = {lim_g}")
+        except Exception as e:
+            passos.append(f"  Erro ao calcular limites: {e}")
+            continue
 
-        if (limite_num.is_number and limite_den.is_number and limite_den != 0):
-            resultado = limite_num / limite_den
-            passos.append(f"lim(x→{ponto_str}) {f}/{g} = {resultado}")
-            break
-        else:
-            passos.append(f"Indeterminação detectada: {limite_num}/{limite_den}. Aplicando L'Hôpital.")
+        # Verifica se a forma é indeterminada válida para L'Hôpital
+        formas_validas = [
+    abs(lim_f.evalf()) < 1e-10 and abs(lim_g.evalf()) < 1e-10,
+    lim_f.is_infinite and lim_g.is_infinite]
 
-        f = diff(f, x)
-        g = diff(g, x)
-        passos.append(f"f'(x) = {f}, g'(x) = {g}")
 
-        i += 1
-        if i > 10:
-            passos.append("Limite de iterações excedido.")
-            break
+        if not any(formas_validas):
+            passos.append("  ❌ A Regra de L’Hôpital NÃO se aplica — forma não é indeterminada.")
+            continue
+
+        # Aplicação iterativa
+        passos.append("  ✅ Forma indeterminada detectada. Aplicando L'Hôpital:")
+        i = 1
+        num, den = f, g
+        while i <= 10:
+            num_deriv = diff(num, x)
+            den_deriv = diff(den, x)
+            passos.append(f"    Iteração {i}:")
+            passos.append(f"      f'(x) = {num_deriv}")
+            passos.append(f"      g'(x) = {den_deriv}")
+
+            try:
+                lim_num = calcular(num_deriv, lado)
+                lim_den = calcular(den_deriv, lado)
+                passos.append(f"      lim(x→{ponto}{lado}) f'(x) = {lim_num}")
+                passos.append(f"      lim(x→{ponto}{lado}) g'(x) = {lim_den}")
+            except Exception as e:
+                passos.append(f"      Erro ao calcular limites das derivadas: {e}")
+                break
+
+            if lim_den != 0 and lim_den.is_number and lim_num.is_number:
+                resultado = simplify(lim_num / lim_den)
+                passos.append(f"      ✅ Resultado final após {i} iteração(ões): {resultado}")
+                break
+
+            num, den = num_deriv, den_deriv
+            i += 1
+
+            if i > 10:
+                passos.append("      ❌ Número máximo de iterações atingido.")
+                break
+
+        passos.append("")
 
     return passos
+
 
 
 def calculo_lhopital():
