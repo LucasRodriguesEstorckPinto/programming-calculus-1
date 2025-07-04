@@ -728,6 +728,75 @@ def plot_func_tangente():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico:")
 
+def aplicar_lhopital(f_str, g_str, ponto_str, direcao='+'):
+    from sympy import limit, sympify, diff, oo, zoo, nan
+    f = sympify(f_str)
+    g = sympify(g_str)
+    ponto = sympify(ponto_str)
+    passos = []
+    i = 0
+
+    # Primeiro, tenta calcular o limite diretamente
+    try:
+        limite_direto = limit(f / g, x, ponto, dir=direcao)
+        if limite_direto.is_real or limite_direto.is_number:
+            passos.append(f"lim(x→{ponto_str}) {f}/{g} = {limite_direto} (direto)")
+            return passos
+    except:
+        passos.append("Não foi possível calcular o limite direto. Aplicando L'Hôpital.")
+
+    # Aplica L'Hôpital iterativamente se o limite direto falhar
+    while True:
+        try:
+            limite_num = limit(f, x, ponto, dir=direcao)
+            limite_den = limit(g, x, ponto, dir=direcao)
+        except:
+            passos.append("Erro ao calcular os limites.")
+            break
+
+        if (limite_num.is_number and limite_den.is_number and limite_den != 0):
+            resultado = limite_num / limite_den
+            passos.append(f"lim(x→{ponto_str}) {f}/{g} = {resultado}")
+            break
+        else:
+            passos.append(f"Indeterminação detectada: {limite_num}/{limite_den}. Aplicando L'Hôpital.")
+
+        f = diff(f, x)
+        g = diff(g, x)
+        passos.append(f"f'(x) = {f}, g'(x) = {g}")
+
+        i += 1
+        if i > 10:
+            passos.append("Limite de iterações excedido.")
+            break
+
+    return passos
+
+
+def calculo_lhopital():
+    global entrada_num, entrada_den, entrada_ponto, direcao_lhopital, resultado_text_lhopital
+    try:
+        num = entrada_num.get()
+        den = entrada_den.get()
+        ponto = entrada_ponto.get()
+        direcao = direcao_lhopital.get()
+
+        passos = aplicar_lhopital(num, den, ponto, direcao)
+        resultado_text_lhopital.delete("1.0", ctk.END)
+        for passo in passos:
+            resultado_text_lhopital.insert(ctk.END, passo + "\n")
+
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
+
+
+def exemplo_lhopital(self):
+    entrada_num.delete(0, ctk.END)
+    entrada_den.delete(0, ctk.END)
+    entrada_ponto.delete(0, ctk.END)
+    entrada_num.insert(0, "sin(x)")
+    entrada_den.insert(0, "x")
+    entrada_ponto.insert(0, "0")
 
 def exemplo_raiz():
     example_text = ("Exemplo de Raiz Quadrada:\n"
@@ -852,11 +921,27 @@ Fonte: Stewart, James. Cálculo. 8ª edição."""
     botao_fechar = ctk.CTkButton(janela_explicacao, text="Fechar", command=janela_explicacao.destroy)
     botao_fechar.pack(pady=10)
 
-# =============================================================================
-#   NOVAS FUNÇÕES DE INTERFACE COM CUSTOMTKINTER
-# =============================================================================
+def abrir_explicacao_lhopital():
+    janela_explicacao = ctk.CTkToplevel()
+    janela_explicacao.title("Explicação sobre a Regra de L'Hôpital")
+    janela_explicacao.geometry("600x320")
 
-# Classe que sobrescreve o método get() para realizar substituições usando regex.
+    texto = """A Regra de L'Hôpital é usada para resolver limites que apresentam formas indeterminadas, 
+como 0/0 ou ∞/∞.
+
+Sejam f(x) e g(x) funções deriváveis em um intervalo aberto contendo 'a', e se:
+- lim(x→a) f(x) = 0 e lim(x→a) g(x) = 0  ou
+- lim(x→a) f(x) = ∞ e lim(x→a) g(x) = ∞
+
+Então:
+    lim(x→a) f(x)/g(x) = lim(x→a) f'(x)/g'(x)
+desde que esse limite da derivada exista.
+
+A regra pode ser aplicada repetidamente até a indeterminação desaparecer."""
+
+    label = ctk.CTkLabel(janela_explicacao, text=texto, justify="left", wraplength=580, font=("Segoe UI", 14))
+    label.pack(padx=20, pady=20)
+
 class ModernEntry(ctk.CTkEntry):
     def get(self):
         text = super().get()
@@ -944,7 +1029,7 @@ class App(ctk.CTk):
         tabview = ctk.CTkTabview(self)
         tabview.pack(padx=10, pady=10, fill="both", expand=True)
 
-        abas = ["Domínio e Imagem", "Derivadas", "Limites", "Raiz", "Gráficos", "Integrais", "Manual"]
+        abas = ["Domínio e Imagem", "Derivadas", "Limites", "Raiz", "Gráficos", "L'Hôpital", "Integrais", "Manual"]
         frames = {aba: tabview.add(aba) for aba in abas}
 
         self.aba_dominio(frames["Domínio e Imagem"])
@@ -952,6 +1037,7 @@ class App(ctk.CTk):
         self.aba_limites(frames["Limites"])
         self.aba_raiz(frames["Raiz"])
         self.aba_graficos(frames["Gráficos"])
+        self.aba_lhopital(frames["L'Hôpital"])
         self.aba_integrais(frames["Integrais"])
         self.aba_manual(frames["Manual"])
 
@@ -1072,6 +1158,30 @@ class App(ctk.CTk):
         frame_grafico_container = ctk.CTkFrame(right)
         frame_grafico_container.pack(fill="both", expand=True)
 
+    # ====================== ABA LHOPITAL =========================
+    def aba_lhopital(self, frame):
+        global entrada_num, entrada_den, entrada_ponto, direcao_lhopital, resultado_text_lhopital
+
+        left, right = self.estrutura_aba(frame)
+
+        ctk.CTkButton(left, text="Quando usar L'Hôpital?", command=abrir_explicacao_lhopital).pack(pady=5, anchor="w")
+
+        entrada_num = labeled_input(left, "Função Numerador:")
+        aplicar_validacao_em_tempo_real(entrada_num)
+        entrada_den = labeled_input(left, "Função Denominador:")
+        aplicar_validacao_em_tempo_real(entrada_den)
+        entrada_ponto = labeled_input(left, "Tendendo a:")
+        aplicar_validacao_em_tempo_real(entrada_ponto)
+
+        direcao_lhopital = ctk.StringVar(value="+")
+        ctk.CTkOptionMenu(left, variable=direcao_lhopital, values=["+", "-"]).pack(pady=5, anchor="w")
+
+        botao(left, self.calculo_lhopital, "Aplicar L'Hôpital")
+        botao(left, self.exemplo_lhopital, "Exemplo")
+
+        resultado_text_lhopital = ctk.CTkTextbox(right, font=font)
+        resultado_text_lhopital.pack(fill="both", expand=True)
+
 
     # ====================== ABA INTEGRAIS =========================
     def aba_integrais(self, frame):
@@ -1095,6 +1205,55 @@ class App(ctk.CTk):
 
         img = ctk.CTkImage(Image.open("integral.png"), size=(300, 180))
         ctk.CTkLabel(right, image=img, text="").pack(pady=10)
+
+    
+    def calculo_lhopital(self):
+        global entrada_num, entrada_den, entrada_ponto, direcao_lhopital, resultado_text_lhopital
+        try:
+            num = entrada_num.get()
+            den = entrada_den.get()
+            ponto = entrada_ponto.get()
+            direcao = direcao_lhopital.get()
+
+            passos = aplicar_lhopital(num, den, ponto, direcao)
+            resultado_text_lhopital.delete("1.0", ctk.END)
+            for passo in passos:
+                resultado_text_lhopital.insert(ctk.END, passo + "\n")
+
+        except Exception as e:
+            messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
+
+    def exemplo_lhopital(self):
+        entrada_num.delete(0, ctk.END)
+        entrada_den.delete(0, ctk.END)
+        entrada_ponto.delete(0, ctk.END)
+        entrada_num.insert(0, "sin(x)")
+        entrada_den.insert(0, "x")
+        entrada_ponto.insert(0, "0")
+
+    def aba_lhopital(self, frame):
+        global entrada_num, entrada_den, entrada_ponto, direcao_lhopital, resultado_text_lhopital
+
+        left, right = self.estrutura_aba(frame)
+
+        ctk.CTkButton(left, text="Quando usar L'Hôpital?", command=abrir_explicacao_lhopital).pack(pady=5, anchor="w")
+
+        entrada_num = labeled_input(left, "Função Numerador:")
+        aplicar_validacao_em_tempo_real(entrada_num)
+        entrada_den = labeled_input(left, "Função Denominador:")
+        aplicar_validacao_em_tempo_real(entrada_den)
+        entrada_ponto = labeled_input(left, "Tendendo a:")
+        aplicar_validacao_em_tempo_real(entrada_ponto)
+
+        direcao_lhopital = ctk.StringVar(value="+")
+        ctk.CTkOptionMenu(left, variable=direcao_lhopital, values=["+", "-"]).pack(pady=5, anchor="w")
+
+        ctk.CTkButton(left, text="Aplicar L'Hôpital", command=self.calculo_lhopital).pack(pady=5, anchor="w")
+        ctk.CTkButton(left, text="Exemplo", command=self.exemplo_lhopital).pack(pady=5, anchor="w")
+
+        resultado_text_lhopital = ctk.CTkTextbox(right, font=font)
+        resultado_text_lhopital.pack(fill="both", expand=True)
+
 
     # ====================== ABA MANUAL =========================
     def aba_manual(self, frame):
