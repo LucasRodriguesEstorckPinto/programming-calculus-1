@@ -15,6 +15,15 @@ from sympy.solvers.inequalities import solve_univariate_inequality
 from sympy import S, Interval, Union, log, Pow, FiniteSet
 from sympy.solvers.inequalities import solve_univariate_inequality
 from sympy.solvers.solvers import solve
+from tkinter import filedialog
+from scipy.interpolate import interp1d
+
+
+dados_x = None
+dados_y = None
+interpolar_var = None
+botao_plot_dados = None
+check_interpolar = None
 
 
 matplotlib.use("TkAgg")
@@ -169,6 +178,85 @@ def ajustar_amostragem(lower, upper, num_points_base=200):
     if upper - lower > 100:
         return np.linspace(lower, upper, num_points_base)
     return np.linspace(lower, upper, min(num_points_base * 2, 800))
+
+def carregar_arquivo_pontos():
+    global dados_x, dados_y, botao_plot_dados, check_interpolar, resultado_text_grafico
+
+    file_path = filedialog.askopenfilename(filetypes=[("Arquivos de Texto", "*.txt")])
+    if not file_path:
+        return
+
+    try:
+        # Leitura com separadores flexíveis (tab, vírgula ou espaço)
+        dados = np.genfromtxt(file_path, delimiter=None)
+        if dados.ndim != 2 or dados.shape[1] < 2:
+            raise ValueError("Arquivo deve conter pelo menos duas colunas numéricas.")
+
+        dados_x = dados[:, 0]
+        dados_y = dados[:, 1]
+
+        # Mostrar controles após upload bem-sucedido
+        check_interpolar.pack(pady=5, anchor="w")
+        botao_plot_dados.pack(pady=5, padx=5, anchor="w")
+        resultado_text_grafico.insert(ctk.END, "\nArquivo carregado com sucesso. Pontos prontos para plotagem.\n")
+
+    except Exception as e:
+        messagebox.showerror("Erro ao importar arquivo", f"Erro ao processar arquivo: {str(e)}")
+
+
+def plotar_dados_importados():
+    global dados_x, dados_y, grafico_canvas, grafico_toolbar, frame_grafico_container
+    if dados_x is None or dados_y is None:
+        return
+
+    try:
+        if frame_grafico_container:
+            for widget in frame_grafico_container.winfo_children():
+                widget.destroy()
+
+        # Ordenar os dados pelo eixo x
+        ordenados = sorted(zip(dados_x, dados_y), key=lambda par: par[0])
+        x_ord, y_ord = zip(*ordenados)
+        x_ord = np.array(x_ord)
+        y_ord = np.array(y_ord)
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        if interpolar_var.get():
+            try:
+                f_interp = interp1d(x_ord, y_ord, kind='cubic')
+                x_interp = np.linspace(x_ord[0], x_ord[-1], 500)
+                y_interp = f_interp(x_interp)
+                ax.plot(x_interp, y_interp, label="Interpolado", linewidth=2.5, color='cyan')
+            except Exception as e:
+                messagebox.showwarning("Interpolação falhou", f"Erro ao interpolar: {str(e)}")
+
+        ax.scatter(x_ord, y_ord, color='red', s=60, zorder=5, label="Pontos")
+
+        ax.axhline(0, color='black', lw=1.2, linestyle='dashed')
+        ax.axvline(0, color='black', lw=1.2, linestyle='dashed')
+        ax.set_xlabel('x')
+        ax.set_ylabel('y')
+        ax.set_title("Gráfico dos dados importados")
+        ax.legend()
+        plt.tight_layout()
+
+        canvas = FigureCanvasTkAgg(fig, master=frame_grafico_container)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
+        grafico_canvas = canvas
+
+        toolbar = NavigationToolbar2Tk(canvas, frame_grafico_container)
+        toolbar.update()
+        toolbar.pack()
+        grafico_toolbar = toolbar
+
+        resultado_text_grafico.insert(ctk.END, "\nGráfico dos pontos importados plotado com sucesso.\n")
+
+    except Exception as e:
+        messagebox.showerror("Erro", f"Erro ao plotar os pontos")
+
+
 
 # Função principal do gráfico
 def plot_grafico():
@@ -1177,6 +1265,12 @@ class App(ctk.CTk):
         ctk.CTkCheckBox(left, text="Mostrar pontos críticos e de inflexão", variable=show_points_var).pack(pady=5, anchor="w")
 
         botao(left, plot_grafico, "Plotar")
+
+        global interpolar_var, botao_plot_dados, check_interpolar
+        ctk.CTkButton(left, text="Importar arquivo de pontos", command=carregar_arquivo_pontos).pack(pady=10, anchor="w")
+        interpolar_var = ctk.BooleanVar(value=False)
+        check_interpolar = ctk.CTkCheckBox(left, text="Interpolar curva", variable=interpolar_var)
+        botao_plot_dados = ctk.CTkButton(left, text="Plotar dados importados", command=plotar_dados_importados)
 
         resultado_text_grafico = ctk.CTkTextbox(right, font=font, height=150)
         resultado_text_grafico.pack(fill="x", pady=(0, 10))
