@@ -187,28 +187,44 @@ def carregar_arquivo_pontos():
         return
 
     try:
-        # Leitura com separadores flexíveis (tab, vírgula ou espaço)
-        dados = np.genfromtxt(file_path, delimiter=None)
-        if dados.ndim != 2 or dados.shape[1] < 2:
-            raise ValueError("Arquivo deve conter pelo menos duas colunas numéricas.")
+        with open(file_path, 'r') as file:
+            linhas = file.readlines()
+            dados_lidos = []
+            for linha in linhas:
+                linha = re.sub(r'[,\t]+', ' ', linha.strip())  # trata vírgulas e tabs
+                partes = linha.split()
+                if len(partes) >= 2:
+                    dados_lidos.append([float(partes[0]), float(partes[1])])
 
+        dados = np.array(dados_lidos)
         dados_x = dados[:, 0]
         dados_y = dados[:, 1]
 
-        # Mostrar controles após upload bem-sucedido
+        if len(dados_x) < 2:
+            raise ValueError("Mínimo de dois pontos necessários.")
+
         check_interpolar.pack(pady=5, anchor="w")
         botao_plot_dados.pack(pady=5, padx=5, anchor="w")
         resultado_text_grafico.insert(ctk.END, "\nArquivo carregado com sucesso. Pontos prontos para plotagem.\n")
 
     except Exception as e:
+        import traceback
+        print(traceback.format_exc())
         messagebox.showerror("Erro ao importar arquivo", f"Erro ao processar arquivo: {str(e)}")
-
 
 def plotar_dados_importados():
     global dados_x, dados_y, grafico_canvas, grafico_toolbar, frame_grafico_container
     if dados_x is None or dados_y is None:
         return
 
+    if interpolar_var.get():
+        if len(x_ord) < 4:
+            raise ValueError("Pelo menos 4 pontos são necessários para interpolação cúbica.")
+        f_interp = interp1d(x_ord, y_ord, kind='cubic')
+        x_interp = np.linspace(x_ord[0], x_ord[-1], 500)
+        y_interp = f_interp(x_interp)
+        ax.plot(x_interp, y_interp, label="Interpolado", linewidth=2.5, color='cyan')
+    
     try:
         if frame_grafico_container:
             for widget in frame_grafico_container.winfo_children():
