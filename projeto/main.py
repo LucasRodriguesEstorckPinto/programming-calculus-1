@@ -166,7 +166,7 @@ def numerical_roots(expr, var, a, b, num_points=500):
             if np.isfinite(val1) and np.isfinite(val2) and np.sign(val1) * np.sign(val2) < 0:
                 root_array = fsolve(lambda x: float(expr_func(x)) if np.isfinite(float(expr_func(x))) else 0,
                                     (x_vals[i] + x_vals[i+1])/2)
-                root = float(root_array[0])  # Pegamos o primeiro elemento do array
+                root = float(root_array[0])  # Pegamos o primeiro elemento da lista
                 if a <= root <= b and not any(abs(root - r) < 1e-6 for r in roots):
                     roots.append(root)
         except Exception:
