@@ -217,20 +217,11 @@ def plotar_dados_importados():
     if dados_x is None or dados_y is None:
         return
 
-    if interpolar_var.get():
-        if len(x_ord) < 4:
-            raise ValueError("Pelo menos 4 pontos são necessários para interpolação cúbica.")
-        f_interp = interp1d(x_ord, y_ord, kind='cubic')
-        x_interp = np.linspace(x_ord[0], x_ord[-1], 500)
-        y_interp = f_interp(x_interp)
-        ax.plot(x_interp, y_interp, label="Interpolado", linewidth=2.5, color='cyan')
-    
     try:
         if frame_grafico_container:
             for widget in frame_grafico_container.winfo_children():
                 widget.destroy()
 
-        # Ordenar os dados pelo eixo x
         ordenados = sorted(zip(dados_x, dados_y), key=lambda par: par[0])
         x_ord, y_ord = zip(*ordenados)
         x_ord = np.array(x_ord)
@@ -238,17 +229,26 @@ def plotar_dados_importados():
 
         fig, ax = plt.subplots(figsize=(10, 6))
 
+        # Interpolação: só se houver ao menos 4 pontos
         if interpolar_var.get():
-            try:
-                f_interp = interp1d(x_ord, y_ord, kind='cubic')
-                x_interp = np.linspace(x_ord[0], x_ord[-1], 500)
-                y_interp = f_interp(x_interp)
-                ax.plot(x_interp, y_interp, label="Interpolado", linewidth=2.5, color='cyan')
-            except Exception as e:
-                messagebox.showwarning("Interpolação falhou", f"Erro ao interpolar: {str(e)}")
+            if len(x_ord) >= 4:
+                try:
+                    f_interp = interp1d(x_ord, y_ord, kind='cubic')
+                    x_interp = np.linspace(x_ord[0], x_ord[-1], 500)
+                    y_interp = f_interp(x_interp)
+                    ax.plot(x_interp, y_interp, label="Interpolado", linewidth=2.5, color='cyan', zorder=4)
+                    resultado_text_grafico.insert(ctk.END, "\nCurva interpolada plotada com sucesso.\n")
+                except Exception as e:
+                    import traceback
+                    print(traceback.format_exc())
+                    messagebox.showwarning("Interpolação falhou", f"Erro ao interpolar: {str(e)}")
+            else:
+                resultado_text_grafico.insert(ctk.END, "\n⚠️ Pelo menos 4 pontos são necessários para interpolação cúbica.\n")
 
+        # Pontos
         ax.scatter(x_ord, y_ord, color='red', s=60, zorder=5, label="Pontos")
 
+        # Eixos
         ax.axhline(0, color='black', lw=1.2, linestyle='dashed')
         ax.axvline(0, color='black', lw=1.2, linestyle='dashed')
         ax.set_xlabel('x')
@@ -257,6 +257,7 @@ def plotar_dados_importados():
         ax.legend()
         plt.tight_layout()
 
+        # Embed no Tkinter
         canvas = FigureCanvasTkAgg(fig, master=frame_grafico_container)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
@@ -267,11 +268,12 @@ def plotar_dados_importados():
         toolbar.pack()
         grafico_toolbar = toolbar
 
-        resultado_text_grafico.insert(ctk.END, "\nGráfico dos pontos importados plotado com sucesso.\n")
+        resultado_text_grafico.insert(ctk.END, "\nGráfico plotado.\n")
 
     except Exception as e:
-        messagebox.showerror("Erro", f"Erro ao plotar os pontos")
-
+        import traceback
+        print(traceback.format_exc())
+        messagebox.showerror("Erro", f"Erro ao plotar os pontos: {str(e)}")
 
 
 # Função principal do gráfico
