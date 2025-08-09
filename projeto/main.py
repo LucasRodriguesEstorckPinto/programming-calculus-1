@@ -37,8 +37,33 @@ font = ("Segoe UI", 14)
 # Configurações globais
 sp.init_printing()
 x = sp.symbols('x')
-n = sp.symbols('n', integer=True) 
+n = sp.symbols('n', integer=True)
 
+
+def calculo_derivadas_parciais():
+    global entradafuncparcial, entradavarparcial, resultado_text_parcial
+    try:
+        func_str = entradafuncparcial.get()
+        var_str = entradavarparcial.get().strip()
+
+        # Identifica variáveis presentes na função
+        variaveis = sorted(set(re.findall(r"[a-zA-Z]+", func_str)))
+        vars_sympy = sp.symbols(" ".join(variaveis))
+        expr = sp.sympify(func_str)
+
+        resultado_text_parcial.delete("1.0", ctk.END)
+
+        if var_str:  # Derivada parcial específica
+            var = sp.Symbol(var_str)
+            derivada = sp.diff(expr, var)
+            resultado_text_parcial.insert(ctk.END, f"∂f/∂{var_str} = {derivada}\n")
+        else:  # Todas as derivadas parciais
+            for var in vars_sympy:
+                derivada = sp.diff(expr, var)
+                resultado_text_parcial.insert(ctk.END, f"∂f/∂{var} = {derivada}\n")
+
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a derivada parcial.\n{e}")
 
 def calculo_derivada():
     global resultado_text_deriv, entradaderiv, entradaponto
@@ -966,6 +991,14 @@ def exemplo_limite():
     resultado_text_limite.delete("1.0", ctk.END)
     resultado_text_limite.insert(ctk.END, example_text)
 
+def exemplo_lhopital(self):
+        entrada_num.delete(0, ctk.END)
+        entrada_den.delete(0, ctk.END)
+        entrada_ponto.delete(0, ctk.END)
+        entrada_num.insert(0, "sin(x)")
+        entrada_den.insert(0, "x")
+        entrada_ponto.insert(0, "0")
+
 def exemplo_derivada():
     example_text = (
         "Exemplo de Derivada e Tangente:\n"
@@ -977,6 +1010,12 @@ def exemplo_derivada():
     )
     resultado_text_deriv.delete("1.0", ctk.END)
     resultado_text_deriv.insert(ctk.END, example_text)
+
+def exemplo_derivada_parcial():
+    entradafuncparcial.delete(0, ctk.END)
+    entradavarparcial.delete(0, ctk.END)
+    entradafuncparcial.insert(0, "x**2 * y + sin(z)")
+    entradavarparcial.insert(0, "x")
 
 def exemplo_integral():
     example_text = (
@@ -1036,6 +1075,9 @@ Fonte: Stewart, James. Cálculo. 8ª edição."""
 
     botao_fechar = ctk.CTkButton(janela_explicacao, text="Fechar", command=janela_explicacao.destroy)
     botao_fechar.pack(pady=10)
+
+def abrir_explicacao_derivadas_parciais():
+    pass
 
 def abrir_explicacao_dominios():
     janela_explicacao = ctk.CTkToplevel()
@@ -1162,11 +1204,12 @@ class App(ctk.CTk):
         tabview = ctk.CTkTabview(self)
         tabview.pack(padx=10, pady=10, fill="both", expand=True)
 
-        abas = ["Domínio e Imagem", "Derivadas", "Limites", "Raiz", "Gráficos", "L'Hôpital", "Integrais", "Manual"]
+        abas = ["Domínio e Imagem", "Derivadas", "Derivadas Parciais",  "Limites", "Raiz", "Gráficos", "L'Hôpital", "Integrais", "Manual"]
         frames = {aba: tabview.add(aba) for aba in abas}
 
         self.aba_dominio(frames["Domínio e Imagem"])
         self.aba_derivadas(frames["Derivadas"])
+        self.aba_derivadas_parciais(frames["Derivadas Parciais"])
         self.aba_limites(frames["Limites"])
         self.aba_raiz(frames["Raiz"])
         self.aba_graficos(frames["Gráficos"])
@@ -1222,6 +1265,28 @@ class App(ctk.CTk):
 
         img = ctk.CTkImage(Image.open("deriva.png"), size=(250, 120))
         ctk.CTkLabel(right, image=img, text="").pack(pady=10)
+    
+    
+    # ====================== ABA DERIVADAS PARCIAIS =========================
+    def aba_derivadas_parciais(self, frame):
+        global entradafuncparcial, entradavarparcial, resultado_text_parcial
+        left, right = self.estrutura_aba(frame)
+
+        ctk.CTkButton(left, text="O que são Derivadas Parciais?", command=abrir_explicacao_derivadas_parciais).pack(pady=5, anchor="w")
+
+        entradafuncparcial = labeled_input(left, "Função:")
+        aplicar_validacao_em_tempo_real(entradafuncparcial)
+        entradavarparcial = labeled_input(left, "Variável (vazio = todas):")
+
+        botao(left, calculo_derivadas_parciais, "Calcular")
+        botao(left, exemplo_derivada_parcial, "Exemplo")
+
+        resultado_text_parcial = ctk.CTkTextbox(right, font=font)
+        resultado_text_parcial.pack(fill="both", expand=True)
+
+        img = ctk.CTkImage(Image.open("partial_derivative.png"), size=(250, 120))
+        ctk.CTkLabel(right, image=img, text="").pack(pady=10)
+
 
     # ====================== ABA LIMITES =========================
     def aba_limites(self, frame):
@@ -1362,13 +1427,6 @@ class App(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
 
-    def exemplo_lhopital(self):
-        entrada_num.delete(0, ctk.END)
-        entrada_den.delete(0, ctk.END)
-        entrada_ponto.delete(0, ctk.END)
-        entrada_num.insert(0, "sin(x)")
-        entrada_den.insert(0, "x")
-        entrada_ponto.insert(0, "0")
 
     def aba_lhopital(self, frame):
         global entrada_num, entrada_den, entrada_ponto, direcao_lhopital, resultado_text_lhopital
