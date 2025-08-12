@@ -991,14 +991,6 @@ def exemplo_limite():
     resultado_text_limite.delete("1.0", ctk.END)
     resultado_text_limite.insert(ctk.END, example_text)
 
-def exemplo_lhopital(self):
-        entrada_num.delete(0, ctk.END)
-        entrada_den.delete(0, ctk.END)
-        entrada_ponto.delete(0, ctk.END)
-        entrada_num.insert(0, "sin(x)")
-        entrada_den.insert(0, "x")
-        entrada_ponto.insert(0, "0")
-
 def exemplo_derivada():
     example_text = (
         "Exemplo de Derivada e Tangente:\n"
@@ -1284,8 +1276,6 @@ class App(ctk.CTk):
         resultado_text_parcial = ctk.CTkTextbox(right, font=font)
         resultado_text_parcial.pack(fill="both", expand=True)
 
-        img = ctk.CTkImage(Image.open("partial_derivative.png"), size=(250, 120))
-        ctk.CTkLabel(right, image=img, text="").pack(pady=10)
 
 
     # ====================== ABA LIMITES =========================
@@ -1380,8 +1370,8 @@ class App(ctk.CTk):
         direcao_lhopital = ctk.StringVar(value="+")
         ctk.CTkOptionMenu(left, variable=direcao_lhopital, values=["+", "-"]).pack(pady=5, anchor="w")
 
-        botao(left, self.calculo_lhopital, "Aplicar L'Hôpital")
-        botao(left, self.exemplo_lhopital, "Exemplo")
+        botao(left, calculo_lhopital, "Aplicar L'Hôpital")
+        botao(left, exemplo_lhopital, "Exemplo")
 
         resultado_text_lhopital = ctk.CTkTextbox(right, font=font)
         resultado_text_lhopital.pack(fill="both", expand=True)
@@ -1426,30 +1416,6 @@ class App(ctk.CTk):
 
         except Exception as e:
             messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
-
-
-    def aba_lhopital(self, frame):
-        global entrada_num, entrada_den, entrada_ponto, direcao_lhopital, resultado_text_lhopital
-
-        left, right = self.estrutura_aba(frame)
-
-        ctk.CTkButton(left, text="Quando usar L'Hôpital?", command=abrir_explicacao_lhopital).pack(pady=5, anchor="w")
-
-        entrada_num = labeled_input(left, "Função Numerador:")
-        aplicar_validacao_em_tempo_real(entrada_num)
-        entrada_den = labeled_input(left, "Função Denominador:")
-        aplicar_validacao_em_tempo_real(entrada_den)
-        entrada_ponto = labeled_input(left, "Tendendo a:")
-        aplicar_validacao_em_tempo_real(entrada_ponto)
-
-        direcao_lhopital = ctk.StringVar(value="+")
-        ctk.CTkOptionMenu(left, variable=direcao_lhopital, values=["+", "-"]).pack(pady=5, anchor="w")
-
-        ctk.CTkButton(left, text="Aplicar L'Hôpital", command=self.calculo_lhopital).pack(pady=5, anchor="w")
-        ctk.CTkButton(left, text="Exemplo", command=self.exemplo_lhopital).pack(pady=5, anchor="w")
-
-        resultado_text_lhopital = ctk.CTkTextbox(right, font=font)
-        resultado_text_lhopital.pack(fill="both", expand=True)
 
 
     # ====================== ABA MANUAL =========================
