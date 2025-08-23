@@ -10,11 +10,8 @@ from PIL import Image
 from functools import lru_cache
 from scipy.optimize import fsolve
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
-from sympy import Interval, Union, S, solve, log , Complement , FiniteSet, oo
+from sympy import Interval, Union, S, solve, log, Complement, FiniteSet, oo, Pow
 from sympy.solvers.inequalities import solve_univariate_inequality
-from sympy import S, Interval, Union, log, Pow, FiniteSet
-from sympy.solvers.inequalities import solve_univariate_inequality
-from sympy.solvers.solvers import solve
 from tkinter import filedialog
 from scipy.interpolate import interp1d
 
@@ -47,6 +44,8 @@ def calculo_derivadas_parciais():
         var_str = entradavarparcial.get().strip()
 
         # Identifica variáveis presentes na função
+        #funcoes_conhecidas = {"sin", "cos", "tan", "exp", "log", "sqrt"}
+        
         variaveis = sorted(set(re.findall(r"[a-zA-Z]+", func_str)))
         vars_sympy = sp.symbols(" ".join(variaveis))
         expr = sp.sympify(func_str)
@@ -890,11 +889,11 @@ def aplicar_lhopital(f_str, g_str, ponto_str, direcao='Ambos'):
 
 
         if not any(formas_validas):
-            passos.append("  ❌ A Regra de L’Hôpital NÃO se aplica — forma não é indeterminada.")
+            passos.append("  ❌ A Regra de L’Hospital NÃO se aplica — forma não é indeterminada.")
             continue
 
         # Aplicação iterativa
-        passos.append("  ✅ Forma indeterminada detectada. Aplicando L'Hôpital:")
+        passos.append("  ✅ Forma indeterminada detectada. Aplicando L'Hospital:")
         i = 1
         num, den = f, g
         while i <= 10:
@@ -1196,7 +1195,7 @@ class App(ctk.CTk):
         tabview = ctk.CTkTabview(self)
         tabview.pack(padx=10, pady=10, fill="both", expand=True)
 
-        abas = ["Domínio e Imagem", "Derivadas", "Derivadas Parciais",  "Limites", "Raiz", "Gráficos", "L'Hôpital", "Integrais", "Manual"]
+        abas = ["Domínio e Imagem", "Derivadas", "Derivadas Parciais",  "Limites", "Raiz", "Gráficos", "L'Hospital", "Integrais", "Manual"]
         frames = {aba: tabview.add(aba) for aba in abas}
 
         self.aba_dominio(frames["Domínio e Imagem"])
@@ -1205,7 +1204,7 @@ class App(ctk.CTk):
         self.aba_limites(frames["Limites"])
         self.aba_raiz(frames["Raiz"])
         self.aba_graficos(frames["Gráficos"])
-        self.aba_lhopital(frames["L'Hôpital"])
+        self.aba_lhopital(frames["L'Hospital"])
         self.aba_integrais(frames["Integrais"])
         self.aba_manual(frames["Manual"])
 
@@ -1358,7 +1357,7 @@ class App(ctk.CTk):
 
         left, right = self.estrutura_aba(frame)
 
-        ctk.CTkButton(left, text="Quando usar L'Hôpital?", command=abrir_explicacao_lhopital).pack(pady=5, anchor="w")
+        ctk.CTkButton(left, text="Quando usar L'Hospital?", command=abrir_explicacao_lhopital).pack(pady=5, anchor="w")
 
         entrada_num = labeled_input(left, "Função Numerador:")
         aplicar_validacao_em_tempo_real(entrada_num)
@@ -1370,7 +1369,7 @@ class App(ctk.CTk):
         direcao_lhopital = ctk.StringVar(value="+")
         ctk.CTkOptionMenu(left, variable=direcao_lhopital, values=["+", "-"]).pack(pady=5, anchor="w")
 
-        botao(left, calculo_lhopital, "Aplicar L'Hôpital")
+        botao(left, calculo_lhopital, "Aplicar L'Hospital")
         botao(left, exemplo_lhopital, "Exemplo")
 
         resultado_text_lhopital = ctk.CTkTextbox(right, font=font)
