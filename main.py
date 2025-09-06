@@ -1170,7 +1170,7 @@ class InitialPage(ctk.CTk):
         manual_btn = ctk.CTkButton(
             self,
             text="Abrir Manual do DDX",
-            command=lambda: webbrowser.open('https://drive.google.com/file/d/1Kn4UD3txfoK37DOliF8L4ePNe53l3nui/view?usp=sharing'),
+            command=lambda: webbrowser.open('https://docs.google.com/document/d/1hvcUL36juGBm_8lsdOpPrMLWzmYnGvakKHaMj1BbxlY/edit?usp=sharing'),
             width=250
         )
         manual_btn.pack(pady=10)
