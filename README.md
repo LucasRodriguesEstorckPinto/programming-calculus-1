@@ -1,5 +1,5 @@
-# Quer baixar a versão mais recente do programa? (V7)
-[Clique aqui](https://mega.nz/folder/UqFwXaDA#6yI22PNEz781degGq_B0QQ)
+# Quer baixar a versão mais recente do programa?
+[Clique aqui](https://drive.google.com/file/d/1Q8H7cJ-g9C0AmyLgulfJZ0DJiOJKdnOJ/view?usp=sharing)
 - Disponivel nativamente para o windows 10 em diante. Para Linux e MacOS, utilize o Wine
 
 # Como usar o DDX
@@ -17,6 +17,8 @@ o DDX, possui uma sintaxe para escrita de funções específica, seguindo as sin
 - "**"       para potência;
 - "sqrt()"   para raíz quadrada;
 - "(),[],{}" Brackets;
+- oo         para infinito;
+- exp(x)     para exponencial de x.
 - *Lembre-se , a ordem dos operadores segue a mesma do convencional.*
 
 
