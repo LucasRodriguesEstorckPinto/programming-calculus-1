@@ -65,25 +65,49 @@ def calculo_derivadas_parciais():
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a derivada parcial.\n{e}")
 
 def calculo_derivada():
-    global resultado_text_deriv, entradaderiv, entradaponto
+    global resultado_text_deriv, entradaderiv, entradaponto, entradaordem
     try:
         x = sp.Symbol('x')
         func_str = entradaderiv.get()
         func = sp.sympify(func_str)
-        derivada = sp.diff(func, x)
+
+        # pega a ordem da derivada, se não informado assume 1
+        ordem_str = entradaordem.get()
+        ordem = int(ordem_str) if ordem_str else 1
 
         resultado_text_deriv.delete("1.0", ctk.END)
-        resultado_text_deriv.insert(ctk.END, f"A derivada da função é: {derivada}\n")
+
+        derivada_atual = func
+        for i in range(1, ordem + 1):
+            derivada_atual = sp.diff(derivada_atual, x)
+            resultado_text_deriv.insert(
+                ctk.END,
+                f"A derivada de ordem {i} da função é: {derivada_atual}\n"
+            )
 
         # Verifica se o ponto foi inserido
         point_str = entradaponto.get()
         if point_str:
             point = float(sp.sympify(point_str))
-            coef_angular = derivada.subs(x, point)
-            reta = func.subs(x, point) + coef_angular * (x - point)
-            resultado_text_deriv.insert(ctk.END, f"A equação da reta tangente é: {reta}\n\n")
+            valor_derivada = derivada_atual.subs(x, point)
+
+            resultado_text_deriv.insert(
+                ctk.END,
+                f"\nO valor da {ordem}ª derivada no ponto x={point} é: {valor_derivada}\n"
+            )
+
+            # reta tangente só faz sentido para a 1ª derivada
+            if ordem == 1:
+                coef_angular = valor_derivada
+                reta = func.subs(x, point) + coef_angular * (x - point)
+                resultado_text_deriv.insert(
+                    ctk.END,
+                    f"A equação da reta tangente é: {reta}\n\n"
+                )
+
     except Exception as e:
-        messagebox.showerror("Erro", "Ocorreu um erro ao calcular a derivada. Verifique sua entrada.")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a derivada: {e}")
+
 
 def calculo_limite():
     global resultado_text_limite, entradalimit, entradavar, entradatend, direcao_var
@@ -928,8 +952,6 @@ def aplicar_lhopital(f_str, g_str, ponto_str, direcao='Ambos'):
 
     return passos
 
-
-
 def calculo_lhopital():
     global entrada_num, entrada_den, entrada_ponto, direcao_lhopital, resultado_text_lhopital
     try:
@@ -1238,7 +1260,7 @@ class App(ctk.CTk):
 
     # ====================== ABA DERIVADAS =========================
     def aba_derivadas(self, frame):
-        global entradaderiv, entradaponto, resultado_text_deriv
+        global entradaderiv, entradaponto, entradaordem, resultado_text_deriv
         left, right = self.estrutura_aba(frame)
 
         ctk.CTkButton(left, text="O que é Derivada?", command=abrir_explicacao_derivada).pack(pady=5, anchor="w")
@@ -1246,10 +1268,11 @@ class App(ctk.CTk):
         entradaderiv = labeled_input(left, "Função:")
         aplicar_validacao_em_tempo_real(entradaderiv)
         entradaponto = labeled_input(left, "Ponto:")
+        entradaordem = labeled_input(left, "Ordem da derivada (ex: 1, 2, 3...):")
 
         botao(left, calculo_derivada, "Calcular")
         botao(left, exemplo_derivada, "Exemplo")
-        botao(left, plot_func_tangente, "Plotar Tangente")
+        botao(left, plot_func_tangente, "Plotar Tangente (Ordem 1)")
 
         resultado_text_deriv = ctk.CTkTextbox(right, font=font)
         resultado_text_deriv.pack(fill="both", expand=True)
@@ -1398,24 +1421,6 @@ class App(ctk.CTk):
 
         img = ctk.CTkImage(Image.open("integral.png"), size=(300, 180))
         ctk.CTkLabel(right, image=img, text="").pack(pady=10)
-
-    
-    def calculo_lhopital(self):
-        global entrada_num, entrada_den, entrada_ponto, direcao_lhopital, resultado_text_lhopital
-        try:
-            num = entrada_num.get()
-            den = entrada_den.get()
-            ponto = entrada_ponto.get()
-            direcao = direcao_lhopital.get()
-
-            passos = aplicar_lhopital(num, den, ponto, direcao)
-            resultado_text_lhopital.delete("1.0", ctk.END)
-            for passo in passos:
-                resultado_text_lhopital.insert(ctk.END, passo + "\n")
-
-        except Exception as e:
-            messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
-
 
     # ====================== ABA MANUAL =========================
     def aba_manual(self, frame):
