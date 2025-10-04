@@ -350,16 +350,13 @@ def plot_grafico():
         try:
             y_intervalo_str = entrada_intervalo_y.get().strip()
             if y_intervalo_str:
-                # aceita formatos como "-5,5" ou "-5, 5"
                 parts = [p.strip() for p in y_intervalo_str.split(',')]
                 if len(parts) == 2:
                     y_lower = float(sp.N(sp.sympify(parts[0])))
                     y_upper = float(sp.N(sp.sympify(parts[1])))
-                    # Se o usuário inseriu intervalo invertido, corrigimos
                     if y_lower > y_upper:
                         y_lower, y_upper = y_upper, y_lower
                 else:
-                    # se o formato for inválido, ignoramos e não definimos ylim
                     y_lower = y_upper = None
         except Exception:
             y_lower = y_upper = None
@@ -376,7 +373,7 @@ def plot_grafico():
             y_vals = func_numeric(x_vals)
             ax.plot(x_vals, y_vals, label=f'${sp.latex(func_sym)}$', linewidth=2.5, color=f'C{i}')
 
-            # Assíntotas verticais
+            # --- assíntotas verticais (seu código) ---
             try:
                 if func_sym.has(sp.tan):
                     n_vals = range(int(lower/sp.pi)-1, int(upper/sp.pi)+2)
@@ -392,7 +389,7 @@ def plot_grafico():
             except Exception as e:
                 print(f"Erro ao calcular assíntotas verticais: {e}")
 
-            # Assíntotas horizontais
+            # --- assíntotas horizontais (seu código) ---
             try:
                 lim_neg = sp.limit(func_sym, x, -sp.oo)
                 lim_pos = sp.limit(func_sym, x, sp.oo)
@@ -404,16 +401,16 @@ def plot_grafico():
             except Exception as e:
                 print(f"Erro ao calcular assíntotas horizontais: {e}")
 
-            # Assíntotas oblíquas
+            # --- assíntotas oblíquas (seu código) ---
             try:
                 coef, intercept = encontrar_assintota_obliqua(func_sym, x)
                 if coef is not None and intercept is not None:
                     ax.axline((0, float(intercept)), slope=float(coef), color='orange', linestyle='--')
                     result_text += f'Assíntota oblíqua: y = {float(coef):.2f}x + {float(intercept):.2f}\n'
             except Exception as e:
-                print(f"Erro ao calcular assíntota oblíqua: {e}")
+                print(f"Erro ao calcular assíntota obliqua: {e}")
 
-            # Pontos críticos e inflexões
+            # --- Pontos críticos e inflexões (seu código) ---
             fprime, fsecond = calcular_derivadas(func_sym, x)
             cp = numerical_roots(fprime, x, lower, upper)
             ip = numerical_roots(fsecond, x, lower, upper)
@@ -454,6 +451,7 @@ def plot_grafico():
             else:
                 result_text += "Pontos não explicitados (checkbox desativado).\n"
 
+            # --- Crescimento/Decrescimento (seu código) ---
             growth_points = sorted([lower] + cp + [upper])
             for j in range(len(growth_points) - 1):
                 mid = (growth_points[j] + growth_points[j+1]) / 2
@@ -468,6 +466,60 @@ def plot_grafico():
                 except Exception:
                     continue
 
+            if show_points_var.get():
+                try:
+                    # pontos de inflexão (já obtidos em `ip`) e possíveis singularidades da 2ª derivada
+                    conc_points = []
+                    try:
+                        conc_points = [float(p) for p in ip]
+                    except Exception:
+                        conc_points = []
+                    try:
+                        sing2 = [s for s in sp.singularities(fsecond, x) if s.is_real]
+                        sing2 = [float(s.evalf()) for s in sing2]
+                    except Exception:
+                        sing2 = []
+
+                    # montar breakpoints dentro do intervalo
+                    internal_points = sorted(set([p for p in conc_points + sing2 if lower < p < upper]))
+                    breakpoints = [lower] + internal_points + [upper]
+
+                    # evitar muitas legendas repetidas: só colocar rótulo uma vez para cada tipo
+                    conc_up_labeled = False
+                    conc_down_labeled = False
+
+                    for j in range(len(breakpoints) - 1):
+                        a = breakpoints[j]
+                        b = breakpoints[j + 1]
+                        mid = (a + b) / 2
+                        try:
+                            # tentar avaliar simbolicamente; se falhar, faz lambdify numérico
+                            val = float(fsecond.subs(x, mid).evalf())
+                        except Exception:
+                            try:
+                                f2_numeric = sp.lambdify(x, fsecond, 'numpy')
+                                val = float(f2_numeric(mid))
+                            except Exception:
+                                # se não der para avaliar, pular esse intervalo
+                                continue
+
+                        if val > 0:
+                            # concavidade positiva -> pintar e anotar
+                            ax.axvspan(a, b, alpha=0.12, facecolor='green', zorder=1,
+                                       label='Concavidade positiva' if not conc_up_labeled else None)
+                            conc_up_labeled = True
+                            result_text += f'Concavidade positiva (côncava para cima) em [{a:.2f}, {b:.2f}]\n'
+                        elif val < 0:
+                            ax.axvspan(a, b, alpha=0.12, facecolor='red', zorder=1,
+                                       label='Concavidade negativa' if not conc_down_labeled else None)
+                            conc_down_labeled = True
+                            result_text += f'Concavidade negativa (côncava para baixo) em [{a:.2f}, {b:.2f}]\n'
+                        else:
+                            result_text += f'Segunda derivada zero em [{a:.2f}, {b:.2f}] (possível mudança de concavidade)\n'
+                except Exception as e:
+                    print(f"Erro ao calcular intervalos de concavidade: {e}")
+
+        # linha dos eixos e labels
         ax.axhline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
         ax.axvline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
         ax.set_xlabel('x', fontsize=14)
@@ -481,7 +533,6 @@ def plot_grafico():
                 ax.set_ylim(y_lower, y_upper)
                 result_text = f'Intervalo Y usado: [{y_lower:.2f}, {y_upper:.2f}]\n' + result_text
             except Exception as e:
-                # se houver problema ao setar ylim, apenas ignoramos e continuamos
                 print(f"Erro ao aplicar intervalo Y: {e}")
 
         canvas = FigureCanvasTkAgg(fig, master=frame_grafico_container)
