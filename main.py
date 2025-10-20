@@ -108,6 +108,46 @@ def calculo_derivada():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a derivada: {e}")
 
+def calculo_derivada_implicita():
+    global entrada_implicita, entrada_var_dependente, entrada_var_independente, resultado_text_implicita
+    try:
+        # Pega a equação e as variáveis dos campos de entrada
+        eq_str = entrada_implicita.get()
+        y_str = entrada_var_dependente.get().strip()
+        x_str = entrada_var_independente.get().strip()
+
+        # Validação básica
+        if not eq_str or not y_str or not x_str:
+            messagebox.showerror("Erro", "Por favor, preencha todos os campos: equação, variável dependente (y) e variável independente (x).")
+            return
+
+        # Cria os símbolos
+        x_sym = sp.symbols(x_str)
+        y_sym = sp.symbols(y_str)
+
+        # Converte a string da equação para uma expressão sympy
+        if '=' in eq_str:
+            lhs_str, rhs_str = eq_str.split('=', 1)
+            lhs = sp.sympify(lhs_str.strip())
+            rhs = sp.sympify(rhs_str.strip())
+            eq = sp.Eq(lhs, rhs)
+        else:
+            # Assume que a expressão é F(x,y) e que a equação é F(x,y) = 0
+            eq = sp.sympify(eq_str)
+
+        # Calcula a derivada implícita dy/dx
+        derivada_implicita = sp.idiff(eq, y_sym, x_sym)
+
+        # Limpa a caixa de texto de resultado
+        resultado_text_implicita.delete("1.0", ctk.END)
+
+        # Mostra o resultado
+        resultado_text_implicita.insert(ctk.END, f"A derivada de {y_str} com respeito a {x_str} (d{y_str}/d{x_str}) é:\n\n")
+        resultado_text_implicita.insert(ctk.END, f"{derivada_implicita}")
+
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a derivada implícita.\nVerifique a equação e as variáveis.\n\nDetalhes: {e}")
+
 
 def calculo_limite():
     global resultado_text_limite, entradalimit, entradavar, entradatend, direcao_var
@@ -1091,6 +1131,48 @@ def calculo_integral():
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a integral:")
 
+def calculo_derivada_implicita():
+        global entrada_implicita, entrada_var_dependente, entrada_var_independente, resultado_text_implicita
+        try:
+            # Pega a equação e as variáveis dos campos de entrada
+            eq_str = entrada_implicita.get()
+            y_str = entrada_var_dependente.get().strip()
+            x_str = entrada_var_independente.get().strip()
+
+            # Validação básica
+            if not eq_str or not y_str or not x_str:
+                messagebox.showerror("Erro", "Por favor, preencha todos os campos: equação, variável dependente (y) e variável independente (x).")
+                return
+
+            # Cria os símbolos
+            x_sym = sp.symbols(x_str)
+            y_sym = sp.symbols(y_str)
+
+            # Converte a string da equação para uma expressão F(x,y)
+            if '=' in eq_str:
+                lhs_str, rhs_str = eq_str.split('=', 1)
+                lhs = sp.sympify(lhs_str.strip())
+                rhs = sp.sympify(rhs_str.strip())
+                # CORREÇÃO: Transforma a equação LHS = RHS em uma expressão (LHS - RHS)
+                eq_expression = lhs - rhs
+            else:
+                # Assume que a expressão F(x,y) já foi fornecida (implícito = 0)
+                eq_expression = sp.sympify(eq_str)
+
+            # Calcula a derivada implícita dy/dx usando a expressão
+            derivada_implicita = sp.idiff(eq_expression, y_sym, x_sym)
+
+            # Limpa a caixa de texto de resultado
+            resultado_text_implicita.delete("1.0", ctk.END)
+
+            # Mostra o resultado
+            resultado_text_implicita.insert(ctk.END, f"A derivada de {y_str} com respeito a {x_str} (d{y_str}/d{x_str}) é:\n\n")
+            resultado_text_implicita.insert(ctk.END, f"{derivada_implicita}")
+
+        except Exception as e:
+            messagebox.showerror("Erro", f"Ocorreu um erro ao calcular a derivada implícita.\nVerifique a equação e as variáveis.\n\nDetalhes: {e}")
+
+
 def plot_func_tangente():
     try:
         x = sp.Symbol('x')
@@ -1258,6 +1340,16 @@ def exemplo_derivada():
     )
     resultado_text_deriv.delete("1.0", ctk.END)
     resultado_text_deriv.insert(ctk.END, example_text)
+
+
+def exemplo_derivada_implicita():
+    entrada_implicita.delete(0, ctk.END)
+    entrada_var_dependente.delete(0, ctk.END)
+    entrada_var_independente.delete(0, ctk.END)
+
+    entrada_implicita.insert(0, "x**2 + y**2 = 1")
+    entrada_var_dependente.insert(0, "y")
+    entrada_var_independente.insert(0, "x")
 
 def exemplo_derivada_parcial():
     entradafuncparcial.delete(0, ctk.END)
@@ -1452,15 +1544,15 @@ class App(ctk.CTk):
         tabview = ctk.CTkTabview(self)
         tabview.pack(padx=10, pady=10, fill="both", expand=True)
 
-        abas = ["Domínio e Imagem", "Limites", "Derivadas Parciais",  "Derivadas", "Raiz", "Gráficos", "L'Hospital", "Integrais", "Manual"]
+        abas = ["Domínio e Imagem", "Limites", "Derivadas", "Raiz", "Gráficos", "Derivadas Implícitas", "L'Hospital", "Integrais", "Manual"]
         frames = {aba: tabview.add(aba) for aba in abas}
 
         self.aba_dominio(frames["Domínio e Imagem"])
         self.aba_limites(frames["Limites"])
         self.aba_derivadas(frames["Derivadas"])
-        self.aba_derivadas_parciais(frames["Derivadas Parciais"])
         self.aba_raiz(frames["Raiz"])
         self.aba_graficos(frames["Gráficos"])
+        self.aba_derivadas_implicitas(frames["Derivadas Implícitas"])
         self.aba_lhopital(frames["L'Hospital"])
         self.aba_integrais(frames["Integrais"])
         self.aba_manual(frames["Manual"])
@@ -1612,6 +1704,24 @@ class App(ctk.CTk):
         # Frame onde o gráfico será embutido
         frame_grafico_container = ctk.CTkFrame(right)
         frame_grafico_container.pack(fill="both", expand=True)
+
+    def aba_derivadas_implicitas(self, frame):
+        global entrada_implicita, entrada_var_dependente, entrada_var_independente, resultado_text_implicita
+        left, right = self.estrutura_aba(frame)
+
+        # Você pode criar uma função de explicação similar às outras, se desejar.
+        # ctk.CTkButton(left, text="O que é Derivação Implícita?", command=abrir_explicacao_derivada_implicita).pack(pady=5, anchor="w")
+
+        entrada_implicita = labeled_input(left, "Equação (ex: x**2 + y**2 = 1):")
+        aplicar_validacao_em_tempo_real(entrada_implicita)
+        entrada_var_dependente = labeled_input(left, "Variável Dependente (ex: y):")
+        entrada_var_independente = labeled_input(left, "Variável Independente (ex: x):")
+
+        botao(left, calculo_derivada_implicita, "Calcular")
+        botao(left, exemplo_derivada_implicita, "Exemplo")
+
+        resultado_text_implicita = ctk.CTkTextbox(right, font=font)
+        resultado_text_implicita.pack(fill="both", expand=True)
 
 
     # ====================== ABA LHOPITAL =========================
