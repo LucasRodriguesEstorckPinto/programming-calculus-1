@@ -366,13 +366,16 @@ def plotar_dados_importados():
 
 # Função principal do gráfico
 def plot_grafico():
-    global resultado_text_grafico, entrada_grafico, intervalo, entrada_intervalo_y, show_points_var, grafico_canvas, grafico_toolbar, frame_grafico_container
+    # Adicionada 'is_piecewise_var' às globais
+    global resultado_text_grafico, entrada_grafico, intervalo, entrada_intervalo_y, show_points_var, is_piecewise_var, grafico_canvas, grafico_toolbar, frame_grafico_container
+    
     try:
-        # Limpar gráfico anterior
+        # 1. Limpar gráfico anterior
         if frame_grafico_container:
             for widget in frame_grafico_container.winfo_children():
                 widget.destroy()
 
+        # 2. Configurar Estilo
         plt.style.use('ggplot')
         plt.rcParams.update({
             'font.size': 12,
@@ -381,11 +384,73 @@ def plot_grafico():
             'legend.fontsize': 12
         })
 
-        func_str = entrada_grafico.get()
-        intervalo_str = intervalo.get()
-        func_list, lower, upper = validar_entrada_grafico(func_str, intervalo_str)
+        # 3. Inicializar o plot e o texto de resultado
+        fig, ax = plt.subplots(figsize=(10, 6))
+        result_text = ""
 
-        # Tenta ler intervalo Y (opcional). Se inválido ou vazio, mantemos None para não forçar ylim.
+        # --- 4. LÓGICA DE PARSING (Modo Duplo) ---
+        
+        func_input_str = entrada_grafico.get()
+        intervalo_input_str = intervalo.get()
+        
+        # Esta lista armazenará tuplas de (func_sym, lower, upper)
+        lista_de_pedacos = [] 
+        
+        # Para rastrear os limites gerais do eixo X
+        full_lower, full_upper = float('inf'), float('-inf')
+
+        if is_piecewise_var.get():
+            # --- MODO POR PARTES (separador ';') ---
+            func_list_str = [f.strip() for f in func_input_str.split(';') if f.strip()]
+            interval_list_str = [i.strip() for i in intervalo_input_str.split(';') if i.strip()]
+
+            if not func_list_str or not interval_list_str:
+                raise ValueError("Modo 'Por Partes' selecionado. Insira funções e intervalos.")
+            if len(func_list_str) != len(interval_list_str):
+                raise ValueError("O número de funções e intervalos (separados por ';') deve ser o mesmo.")
+
+            for f_str, i_str in zip(func_list_str, interval_list_str):
+                func_sym = sp.sympify(f_str)
+                
+                # Parse do intervalo individual 'a, b'
+                parts = [p.strip() for p in i_str.split(',')]
+                if len(parts) != 2:
+                    raise ValueError(f"Intervalo mal formatado: '{i_str}'. Use 'a, b'.")
+                
+                lower = float(sp.N(sp.sympify(parts[0])))
+                upper = float(sp.N(sp.sympify(parts[1])))
+                if lower > upper: 
+                    lower, upper = upper, lower
+                
+                lista_de_pedacos.append( (func_sym, lower, upper) )
+                full_lower = min(full_lower, lower)
+                full_upper = max(full_upper, upper)
+        
+        else:
+            # --- MODO NORMAL (separador ',') ---
+            # (Substitui sua antiga chamada a 'validar_entrada_grafico')
+            func_list_str = [f.strip() for f in func_input_str.split(',') if f.strip()]
+            if not func_list_str:
+                raise ValueError("Nenhuma função inserida.")
+            
+            # Parse do intervalo único 'a, b'
+            parts = [p.strip() for p in intervalo_input_str.split(',')]
+            if len(parts) != 2:
+                raise ValueError(f"Intervalo mal formatado: '{intervalo_input_str}'. Use 'a, b'.")
+                
+            lower = float(sp.N(sp.sympify(parts[0])))
+            upper = float(sp.N(sp.sympify(parts[1])))
+            if lower > upper: 
+                lower, upper = upper, lower
+            
+            full_lower, full_upper = lower, upper
+            
+            # Adiciona todas as funções com o *mesmo* intervalo
+            for f_str in func_list_str:
+                func_sym = sp.sympify(f_str)
+                lista_de_pedacos.append( (func_sym, lower, upper) )
+
+        # --- 5. LER INTERVALO Y (Opcional) ---
         y_lower = y_upper = None
         try:
             y_intervalo_str = entrada_intervalo_y.get().strip()
@@ -396,24 +461,31 @@ def plot_grafico():
                     y_upper = float(sp.N(sp.sympify(parts[1])))
                     if y_lower > y_upper:
                         y_lower, y_upper = y_upper, y_lower
-                else:
-                    y_lower = y_upper = None
         except Exception:
             y_lower = y_upper = None
+        
+        if y_lower is not None:
+             result_text = f'Intervalo Y usado: [{y_lower:.2f}, {y_upper:.2f}]\n' + result_text
 
-        func_sym_list = [sp.sympify(f) for f in func_list]
-        func_numeric_list = [sp.lambdify(x, func, 'numpy') for func in func_sym_list]
 
-        x_vals = ajustar_amostragem(lower, upper)
-
-        fig, ax = plt.subplots(figsize=(10, 6))
-        result_text = ""
-
-        for i, (func_sym, func_numeric) in enumerate(zip(func_sym_list, func_numeric_list)):
+        # --- 6. LOOP PRINCIPAL DE ANÁLISE E PLOTAGEM ---
+        
+        for i, (func_sym, lower, upper) in enumerate(lista_de_pedacos):
+            
+            # Adiciona um cabeçalho para cada pedaço no relatório
+            result_text += f"\n--- Análise de ${sp.latex(func_sym)}$ em [{lower}, {upper}] ---\n"
+            
+            # Gera a função numérica e os valores X *para este pedaço*
+            func_numeric = sp.lambdify(x, func_sym, 'numpy')
+            x_vals = ajustar_amostragem(lower, upper) # Usa o 'lower' e 'upper' deste pedaço
+            
+            # Plotar a curva *deste pedaço*
             y_vals = func_numeric(x_vals)
-            ax.plot(x_vals, y_vals, label=f'${sp.latex(func_sym)}$', linewidth=2.5, color=f'C{i}')
+            ax.plot(x_vals, y_vals, label=f'${sp.latex(func_sym)}$ em [{lower},{upper}]', linewidth=2.5, color=f'C{i}')
 
-            # --- assíntotas verticais (seu código) ---
+            # --- Início da Análise (dentro do loop) ---
+
+            # --- assíntotas verticais ---
             try:
                 if func_sym.has(sp.tan):
                     n_vals = range(int(lower/sp.pi)-1, int(upper/sp.pi)+2)
@@ -423,13 +495,13 @@ def plot_grafico():
                 vertical_asymptotes = [asy for asy in vertical_asymptotes if asy.is_real]
                 for asy in vertical_asymptotes:
                     asy_val = float(asy.evalf())
-                    if lower < asy_val < upper:
+                    if lower < asy_val < upper: # Correto: usa 'lower' e 'upper' do pedaço
                         ax.axvline(asy_val, color='magenta', linestyle='--', linewidth=2)
                         result_text += f'Assíntota vertical em x = {asy_val:.2f}\n'
             except Exception as e:
                 print(f"Erro ao calcular assíntotas verticais: {e}")
 
-            # --- assíntotas horizontais (seu código) ---
+            # --- assíntotas horizontais ---
             try:
                 lim_neg = sp.limit(func_sym, x, -sp.oo)
                 lim_pos = sp.limit(func_sym, x, sp.oo)
@@ -441,7 +513,7 @@ def plot_grafico():
             except Exception as e:
                 print(f"Erro ao calcular assíntotas horizontais: {e}")
 
-            # --- assíntotas oblíquas (seu código) ---
+            # --- assíntotas oblíquas ---
             try:
                 coef, intercept = encontrar_assintota_obliqua(func_sym, x)
                 if coef is not None and intercept is not None:
@@ -450,131 +522,133 @@ def plot_grafico():
             except Exception as e:
                 print(f"Erro ao calcular assíntota obliqua: {e}")
 
-            # --- Pontos críticos e inflexões (seu código) ---
-            fprime, fsecond = calcular_derivadas(func_sym, x)
-            cp = numerical_roots(fprime, x, lower, upper)
-            ip = numerical_roots(fsecond, x, lower, upper)
+            # --- Pontos críticos e inflexões ---
+            try:
+                fprime, fsecond = calcular_derivadas(func_sym, x)
+                # Correto: usa 'lower' e 'upper' do pedaço
+                cp = numerical_roots(fprime, x, lower, upper)
+                ip = numerical_roots(fsecond, x, lower, upper)
 
-            if show_points_var.get():
-                colors = ['#e41a1c', '#4daf4a', '#ff7f00', '#984ea3', '#377eb8']
-                markers = ['^', 'v', 'D', 'o', 's']
-                for p, color, marker in zip(cp, colors[:len(cp)], markers[:len(cp)]):
+                if show_points_var.get():
+                    colors = ['#e41a1c', '#4daf4a', '#ff7f00', '#984ea3', '#377eb8']
+                    markers = ['^', 'v', 'D', 'o', 's']
+                    for p, color, marker in zip(cp, colors[:len(cp)], markers[:len(cp)]):
+                        try:
+                            y_p = float(func_sym.subs(x, p).evalf())
+                            fsecond_val = float(fsecond.subs(x, p).evalf())
+                            point_type = "Máximo" if fsecond_val < 0 else "Mínimo" if fsecond_val > 0 else "Sela"
+                        except Exception:
+                            y_p = float(func_sym.subs(x, p).evalf())
+                            point_type, color, marker = "Crítico", '#984ea3', 'o'
+
+                        ax.scatter(p, y_p, color=color, marker=marker, s=100, edgecolors='black', zorder=6)
+                        ax.annotate(
+                            f'{point_type}\n({p:.2f}, {y_p:.2f})',
+                            xy=(p, y_p), xytext=(p + 0.4, y_p + (0.4 if point_type == "Máximo" else -0.4)),
+                            textcoords='data', fontsize=10, fontweight='bold', color='white',
+                            bbox=dict(boxstyle='round,pad=0.3', fc=color, ec='none'),
+                            arrowprops=dict(arrowstyle='-|>', color=color, lw=1.5), zorder=7
+                        )
+                        result_text += f'{point_type} local em ({p:.2f}, {y_p:.2f})\n'
+
+                    for p in ip:
+                        y_p = float(func_sym.subs(x, p).evalf())
+                        ax.scatter(p, y_p, color='#377eb8', marker='s', s=100, edgecolors='black', zorder=6)
+                        ax.annotate(
+                            f'Inflexão\n({p:.2f}, {y_p:.2f})',
+                            xy=(p, y_p), xytext=(p + 0.4, y_p + 0.4), textcoords='data',
+                            fontsize=10, fontweight='bold', color='white',
+                            bbox=dict(boxstyle='round,pad=0.3', fc='#377eb8', ec='none'),
+                            arrowprops=dict(arrowstyle='-|>', color='#377eb8', lw=1.5), zorder=7
+                        )
+                        result_text += f'Inflexão local em ({p:.2f}, {y_p:.2f})\n'
+                else:
+                    if i == 0: # Evita repetir esta mensagem para cada pedaço
+                        result_text += "Pontos não explicitados (checkbox desativado).\n"
+
+                # --- Crescimento/Decrescimento ---
+                # Correto: usa 'lower' e 'upper' do pedaço
+                growth_points = sorted(list(set([lower] + cp + [upper])))
+                for j in range(len(growth_points) - 1):
+                    mid = (growth_points[j] + growth_points[j+1]) / 2
                     try:
-                        y_p = float(func_sym.subs(x, p).evalf())
-                        fsecond_val = float(fsecond.subs(x, p).evalf())
-                        point_type = "Máximo" if fsecond_val < 0 else "Mínimo" if fsecond_val > 0 else "Sela"
+                        derivative_mid = float(fprime.subs(x, mid).evalf())
+                        if derivative_mid > 0:
+                            result_text += f'Crescimento em [{growth_points[j]:.2f}, {growth_points[j+1]:.2f}]\n'
+                        elif derivative_mid < 0:
+                            result_text += f'Decrescimento em [{growth_points[j]:.2f}, {growth_points[j+1]:.2f}]\n'
+                        else:
+                            result_text += f'Constante em [{growth_points[j]:.2f}, {growth_points[j+1]:.2f}]\n'
                     except Exception:
-                        y_p = float(func_sym.subs(x, p).evalf())
-                        point_type, color, marker = "Crítico", '#984ea3', 'o'
+                        continue
 
-                    ax.scatter(p, y_p, color=color, marker=marker, s=100, edgecolors='black', zorder=6)
-                    ax.annotate(
-                        f'{point_type}\n({p:.2f}, {y_p:.2f})',
-                        xy=(p, y_p), xytext=(p + 0.4, y_p + (0.4 if point_type == "Máximo" else -0.4)),
-                        textcoords='data', fontsize=10, fontweight='bold', color='white',
-                        bbox=dict(boxstyle='round,pad=0.3', fc=color, ec='none'),
-                        arrowprops=dict(arrowstyle='-|>', color=color, lw=1.5), zorder=7
-                    )
-                    result_text += f'{point_type} em ({p:.2f}, {y_p:.2f})\n'
-
-                for p in ip:
-                    y_p = float(func_sym.subs(x, p).evalf())
-                    ax.scatter(p, y_p, color='#377eb8', marker='s', s=100, edgecolors='black', zorder=6)
-                    ax.annotate(
-                        f'Inflexão\n({p:.2f}, {y_p:.2f})',
-                        xy=(p, y_p), xytext=(p + 0.4, y_p + 0.4), textcoords='data',
-                        fontsize=10, fontweight='bold', color='white',
-                        bbox=dict(boxstyle='round,pad=0.3', fc='#377eb8', ec='none'),
-                        arrowprops=dict(arrowstyle='-|>', color='#377eb8', lw=1.5), zorder=7
-                    )
-                    result_text += f'Inflexão em ({p:.2f}, {y_p:.2f})\n'
-            else:
-                result_text += "Pontos não explicitados (checkbox desativado).\n"
-
-            # --- Crescimento/Decrescimento (seu código) ---
-            growth_points = sorted([lower] + cp + [upper])
-            for j in range(len(growth_points) - 1):
-                mid = (growth_points[j] + growth_points[j+1]) / 2
-                try:
-                    derivative_mid = float(fprime.subs(x, mid).evalf())
-                    if derivative_mid > 0:
-                        result_text += f'Crescimento em [{growth_points[j]:.2f}, {growth_points[j+1]:.2f}]\n'
-                    elif derivative_mid < 0:
-                        result_text += f'Decrescimento em [{growth_points[j]:.2f}, {growth_points[j+1]:.2f}]\n'
-                    else:
-                        result_text += f'Constante em [{growth_points[j]:.2f}, {growth_points[j+1]:.2f}]\n'
-                except Exception:
-                    continue
-
-            if show_points_var.get():
-                try:
-                    # pontos de inflexão (já obtidos em `ip`) e possíveis singularidades da 2ª derivada
-                    conc_points = []
+                # --- Concavidade ---
+                if show_points_var.get():
                     try:
                         conc_points = [float(p) for p in ip]
-                    except Exception:
-                        conc_points = []
-                    try:
                         sing2 = [s for s in sp.singularities(fsecond, x) if s.is_real]
                         sing2 = [float(s.evalf()) for s in sing2]
-                    except Exception:
-                        sing2 = []
+                        
+                        internal_points = sorted(set([p for p in conc_points + sing2 if lower < p < upper]))
+                        # Correto: usa 'lower' e 'upper' do pedaço
+                        breakpoints = sorted(list(set([lower] + internal_points + [upper])))
 
-                    # montar breakpoints dentro do intervalo
-                    internal_points = sorted(set([p for p in conc_points + sing2 if lower < p < upper]))
-                    breakpoints = [lower] + internal_points + [upper]
+                        conc_up_labeled = False
+                        conc_down_labeled = False
 
-                    # evitar muitas legendas repetidas: só colocar rótulo uma vez para cada tipo
-                    conc_up_labeled = False
-                    conc_down_labeled = False
-
-                    for j in range(len(breakpoints) - 1):
-                        a = breakpoints[j]
-                        b = breakpoints[j + 1]
-                        mid = (a + b) / 2
-                        try:
-                            # tentar avaliar simbolicamente; se falhar, faz lambdify numérico
-                            val = float(fsecond.subs(x, mid).evalf())
-                        except Exception:
+                        for j in range(len(breakpoints) - 1):
+                            a = breakpoints[j]
+                            b = breakpoints[j + 1]
+                            if a == b: continue
+                            mid = (a + b) / 2
+                            
                             try:
-                                f2_numeric = sp.lambdify(x, fsecond, 'numpy')
-                                val = float(f2_numeric(mid))
+                                val = float(fsecond.subs(x, mid).evalf())
                             except Exception:
-                                # se não der para avaliar, pular esse intervalo
-                                continue
+                                try:
+                                    f2_numeric = sp.lambdify(x, fsecond, 'numpy')
+                                    val = float(f2_numeric(mid))
+                                except Exception:
+                                    continue
 
-                        if val > 0:
-                            # concavidade positiva -> pintar e anotar
-                            ax.axvspan(a, b, alpha=0.12, facecolor='green', zorder=1,
-                                       label='Concavidade positiva' if not conc_up_labeled else None)
-                            conc_up_labeled = True
-                            result_text += f'Concavidade positiva (côncava para cima) em [{a:.2f}, {b:.2f}]\n'
-                        elif val < 0:
-                            ax.axvspan(a, b, alpha=0.12, facecolor='red', zorder=1,
-                                       label='Concavidade negativa' if not conc_down_labeled else None)
-                            conc_down_labeled = True
-                            result_text += f'Concavidade negativa (côncava para baixo) em [{a:.2f}, {b:.2f}]\n'
-                        else:
-                            result_text += f'Segunda derivada zero em [{a:.2f}, {b:.2f}] (possível mudança de concavidade)\n'
-                except Exception as e:
-                    print(f"Erro ao calcular intervalos de concavidade: {e}")
+                            if val > 0:
+                                ax.axvspan(a, b, alpha=0.12, facecolor='green', zorder=1,
+                                           label='Concavidade positiva' if not conc_up_labeled else None)
+                                conc_up_labeled = True
+                                result_text += f'Concavidade positiva em [{a:.2f}, {b:.2f}]\n'
+                            elif val < 0:
+                                ax.axvspan(a, b, alpha=0.12, facecolor='red', zorder=1,
+                                           label='Concavidade negativa' if not conc_down_labeled else None)
+                                conc_down_labeled = True
+                                result_text += f'Concavidade negativa em [{a:.2f}, {b:.2f}]\n'
+                    except Exception as e:
+                        print(f"Erro ao calcular intervalos de concavidade: {e}")
+            
+            except Exception as e:
+                result_text += f"Erro ao analisar derivadas para este pedaço: {e}\n"
+            
+            # --- Fim da Análise (dentro do loop) ---
 
-        # linha dos eixos e labels
+        # --- FIM DO LOOP PRINCIPAL ---
+
+        # --- 7. ESTILIZAÇÃO FINAL (Fora do loop) ---
         ax.axhline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
         ax.axvline(0, color='black', lw=1.2, linestyle='dashed', zorder=3)
         ax.set_xlabel('x', fontsize=14)
         ax.set_ylabel('y', fontsize=14)
+        
+        # Define o limite X geral para abranger todos os pedaços
+        ax.set_xlim(full_lower, full_upper) 
+        
+        # Aplica o limite Y se foi definido
+        if y_lower is not None and y_upper is not None:
+            ax.set_ylim(y_lower, y_upper)
+
         ax.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         plt.tight_layout()
 
-        # Se usuário forneceu intervalo Y válido, aplicar
-        if y_lower is not None and y_upper is not None:
-            try:
-                ax.set_ylim(y_lower, y_upper)
-                result_text = f'Intervalo Y usado: [{y_lower:.2f}, {y_upper:.2f}]\n' + result_text
-            except Exception as e:
-                print(f"Erro ao aplicar intervalo Y: {e}")
 
+        # --- 8. EMBUTIR O GRÁFICO (Fora do loop) ---
         canvas = FigureCanvasTkAgg(fig, master=frame_grafico_container)
         canvas.draw()
         canvas.get_tk_widget().pack(fill="both", expand=True)
@@ -585,13 +659,13 @@ def plot_grafico():
         toolbar.pack()
         grafico_toolbar = toolbar
 
+        # --- 9. ATUALIZAR TEXTO (Fora do loop) ---
         resultado_text_grafico.delete("1.0", ctk.END)
         resultado_text_grafico.insert(ctk.END, result_text + "\nGráfico plotado com sucesso!")
-        resultado_text_grafico.insert(ctk.END, result_text + "\nTodos os pontos mostrados aqui, são LOCAIS")
+        resultado_text_grafico.insert(ctk.END, "\nObs: Todos os pontos mostrados são LOCAIS para seu respectivo intervalo.")
 
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao plotar o gráfico: {str(e)}")
-
 
 # Funções auxiliares
 def validar_entrada(func_str):
@@ -1673,26 +1747,34 @@ class App(ctk.CTk):
 
     # ====================== ABA GRÁFICOS =========================
     def aba_graficos(self, frame):
-        global entrada_grafico, intervalo, entrada_intervalo_y, show_points_var, resultado_text_grafico, frame_grafico_container
+        # Adicionada 'is_piecewise_var' às globais
+        global entrada_grafico, intervalo, entrada_intervalo_y, show_points_var, resultado_text_grafico, frame_grafico_container, is_piecewise_var
+        global interpolar_var, botao_plot_dados, check_interpolar, font # Adicionei 'font' que é usado no Textbox
 
         left, right = self.estrutura_aba(frame)
 
-        entrada_grafico = labeled_input(left, "Função:")
+        # Labels atualizadas para clareza
+        entrada_grafico = labeled_input(left, "Função(ões) (use ',' ou ';'):")
         aplicar_validacao_em_tempo_real(entrada_grafico)
 
-        intervalo = labeled_input(left, "Intervalo X (ex: -10,10):")
+        intervalo = labeled_input(left, "Intervalo(s) (use ',' ou ';'):")
         aplicar_validacao_em_tempo_real(intervalo)
 
         # Novo: intervalo do eixo Y (opcional)
         entrada_intervalo_y = labeled_input(left, "Intervalo Y (opcional, ex: -5,5):")
         aplicar_validacao_em_tempo_real(entrada_intervalo_y)
 
+        # --- NOVO WIDGET ADICIONADO AQUI ---
+        is_piecewise_var = ctk.BooleanVar(value=False)
+        ctk.CTkCheckBox(left, text="Função por Partes (separar com ';')", variable=is_piecewise_var).pack(pady=5, anchor="w")
+        # --- FIM DO NOVO WIDGET ---
+
         show_points_var = ctk.BooleanVar(value=False)
         ctk.CTkCheckBox(left, text="Mostrar pontos críticos e de inflexão", variable=show_points_var).pack(pady=5, anchor="w")
 
         botao(left, plot_grafico, "Plotar")
-
-        global interpolar_var, botao_plot_dados, check_interpolar
+        
+        # Seu código original de importação/interpolação
         ctk.CTkButton(left, text="Importar arquivo de pontos", command=carregar_arquivo_pontos).pack(pady=10, anchor="w")
         interpolar_var = ctk.BooleanVar(value=False)
         check_interpolar = ctk.CTkCheckBox(left, text="Interpolar curva", variable=interpolar_var)
